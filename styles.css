@@ -1,8 +1,36 @@
-/*
+.mg-modal-header {
+	margin-bottom: var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding-bottom: var(--size-4-2);
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.mg-modal-header h2 {
+	margin: 0 0 var(--size-4-1) 0;
+}
 
-If your plugin does not need CSS, delete this file.
+.mg-modal-file {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
 
-*/
+.mg-modal-file-name {
+	color: var(--text-normal);
+	font-weight: var(--font-medium);
+}
+
+.mg-input-full,
+.mg-textarea-full {
+	width: 100%;
+}
+
+.mg-modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--size-4-2);
+	margin-top: var(--size-4-4);
+}
+
+.mg-status-bar {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+}

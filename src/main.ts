@@ -1,114 +1,215 @@
-import {
-	Editor,
-	MarkdownView,
-	MarkdownFileInfo,
-	Modal,
-	Notice,
-	Plugin,
-} from 'obsidian';
-import {
-	DEFAULT_SETTINGS,
-	MyPluginSettings,
-	SampleSettingTab,
-} from './settings';
+import { Notice, Plugin, TFile } from 'obsidian';
+import { AutoBackupManager } from './backup/auto-backup';
+import { DEFAULT_SETTINGS, MetinGitiSettingTab } from './settings';
+import { VersionStore } from './storage/version-store';
+import { MetinGitiSettings } from './types';
+import { SaveVersionModal } from './ui/save-version-modal';
+import { formatDateTimeLabel } from './utils/date';
 
-// Remember to rename these classes and interfaces!
+export default class MetinGitiPlugin extends Plugin {
+	settings!: MetinGitiSettings;
+	private versionStore!: VersionStore;
+	private autoBackup!: AutoBackupManager;
 
-export default class MyPlugin extends Plugin {
-	settings!: MyPluginSettings;
-
-	async onload() {
+	async onload(): Promise<void> {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+		this.versionStore = new VersionStore(this.app);
+		await this.versionStore.initialize();
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
+		this.autoBackup = new AutoBackupManager(
+			this.app,
+			this.versionStore,
+			statusBarItemEl,
+			this.settings.autoBackupEnabled,
+			this.settings.autoBackupIntervalMinutes,
+			this.settings.trackingMode,
+			this.settings.trackedFiles,
+		);
 
-		// This adds a simple command that can be triggered anywhere
+		this.addRibbonIcon('history', 'Sürüm Kaydet', () => {
+			void this.openSaveVersionModal();
+		});
+
+		this.addRibbonIcon('zap', 'Hızlı Sürüm Kaydet', () => {
+			void this.quickSaveActiveFile();
+		});
+
 		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
+			id: 'save-version',
+			name: 'Sürüm Kaydet',
 			callback: () => {
-				new SampleModal(this.app).open();
+				void this.openSaveVersionModal();
 			},
 		});
-		// This adds an editor command that can perform some operation on the current editor instance
+
 		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (
-				editor: Editor,
-				_ctx: MarkdownView | MarkdownFileInfo,
-			) => {
-				editor.replaceSelection('Sample editor command');
+			id: 'quick-save-version',
+			name: 'Hızlı Sürüm Kaydet',
+			callback: () => {
+				void this.quickSaveActiveFile();
 			},
 		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
+
 		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
+			id: 'toggle-file-tracking',
+			name: 'Bu dosya için sürüm takibini aç/kapat',
 			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+				const activeFile = this.app.workspace.getActiveFile();
+				if (
+					!(activeFile instanceof TFile) ||
+					activeFile.extension.toLowerCase() !== 'md'
+				) {
+					return false;
 				}
-				return false;
+				if (!checking) {
+					void this.toggleFileTracking(activeFile);
+				}
+				return true;
 			},
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(activeDocument, 'click', (_evt: MouseEvent) => {
-			new Notice('Click');
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(
-			window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000),
+		this.registerEvent(
+			this.app.vault.on('modify', (file) => {
+				this.autoBackup.markDirty(file);
+			}),
 		);
+
+		this.registerEvent(
+			this.app.vault.on('rename', (file, oldPath) => {
+				void this.handleVaultRename(oldPath, file.path);
+			}),
+		);
+
+		this.registerEvent(
+			this.app.vault.on('delete', (file) => {
+				void this.handleVaultDelete(file.path);
+			}),
+		);
+
+		this.addSettingTab(new MetinGitiSettingTab(this.app, this));
 	}
 
-	onunload() {}
-
-	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<MyPluginSettings>,
-		);
+	onunload(): void {
+		this.autoBackup?.destroy();
 	}
 
-	async saveSettings() {
+	async loadSettings(): Promise<void> {
+		const loaded = (await this.loadData()) as Partial<MetinGitiSettings> | null;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, loaded);
+		if (!Array.isArray(this.settings.trackedFiles)) {
+			this.settings.trackedFiles = [];
+		}
+	}
+
+	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+		this.autoBackup?.configure(
+			this.settings.autoBackupEnabled,
+			this.settings.autoBackupIntervalMinutes,
+			this.settings.trackingMode,
+			this.settings.trackedFiles,
+		);
 	}
-}
 
-class SampleModal extends Modal {
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
+	private getActiveMarkdownFile(): TFile | null {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (
+			!(activeFile instanceof TFile) ||
+			activeFile.extension.toLowerCase() !== 'md'
+		) {
+			new Notice('Sürüm kaydetmek için önce bir not açmalısınız.');
+			return null;
+		}
+		return activeFile;
 	}
 
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
+	private async openSaveVersionModal(): Promise<void> {
+		const activeFile = this.getActiveMarkdownFile();
+		if (!activeFile) {
+			return;
+		}
+
+		const [initialMode, sequencePlaceholder] = await Promise.all([
+			this.versionStore.getFileNamingMode(
+				activeFile,
+				this.settings.namingFormat,
+			),
+			this.versionStore.getDefaultLabel(activeFile, 'sequence'),
+		]);
+		const datePlaceholder = formatDateTimeLabel(new Date());
+
+		new SaveVersionModal(
+			this.app,
+			activeFile,
+			this.versionStore,
+			initialMode,
+			datePlaceholder,
+			sequencePlaceholder,
+			(savedAt) => {
+				this.autoBackup.recordBackupTime(savedAt);
+			},
+		).open();
+	}
+
+	private async quickSaveActiveFile(): Promise<void> {
+		const activeFile = this.getActiveMarkdownFile();
+		if (!activeFile) {
+			return;
+		}
+
+		try {
+			const result = await this.versionStore.saveVersion(activeFile, {
+				kind: 'manual',
+				namingMode: this.settings.namingFormat,
+			});
+
+			if (result.saved && result.version) {
+				this.autoBackup.recordBackupTime(new Date());
+				new Notice(`Hızlı sürüm kaydedildi: ${result.version.label}`);
+			} else if (result.reason === 'duplicate') {
+				new Notice('Değişiklik yok, yeni sürüm alınmadı');
+			} else {
+				new Notice('Bu dosya türü desteklenmiyor.');
+			}
+		} catch (error) {
+			console.error('Metin Giti hızlı sürüm kaydetme hatası:', error);
+			new Notice('Sürüm kaydedilirken bir hata oluştu.');
+		}
+	}
+
+	private async toggleFileTracking(file: TFile): Promise<void> {
+		const index = this.settings.trackedFiles.indexOf(file.path);
+		if (index >= 0) {
+			this.settings.trackedFiles.splice(index, 1);
+			await this.saveSettings();
+			new Notice(`"${file.basename}" için sürüm takibi kapatıldı.`);
+		} else {
+			this.settings.trackedFiles.push(file.path);
+			await this.saveSettings();
+			new Notice(`"${file.basename}" sürüm takibine alındı.`);
+		}
+	}
+
+	private async handleVaultRename(
+		oldPath: string,
+		newPath: string,
+	): Promise<void> {
+		await this.versionStore.handleRename(oldPath, newPath);
+		const trackedIdx = this.settings.trackedFiles.indexOf(oldPath);
+		if (trackedIdx >= 0) {
+			this.settings.trackedFiles[trackedIdx] = newPath;
+			await this.saveSettings();
+		}
+	}
+
+	private async handleVaultDelete(filePath: string): Promise<void> {
+		await this.versionStore.handleDelete(filePath);
+		const trackedIdx = this.settings.trackedFiles.indexOf(filePath);
+		if (trackedIdx >= 0) {
+			this.settings.trackedFiles.splice(trackedIdx, 1);
+			await this.saveSettings();
+		}
 	}
 }

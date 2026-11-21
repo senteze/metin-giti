@@ -1,36 +1,99 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import MyPlugin from './main';
+import type MetinGitiPlugin from './main';
+import {
+	FileNamingMode,
+	MetinGitiSettings,
+	TrackingMode,
+} from './types';
 
-export interface MyPluginSettings {
-	mySetting: string;
-}
-
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default',
+export const DEFAULT_SETTINGS: MetinGitiSettings = {
+	autoBackupEnabled: true,
+	autoBackupIntervalMinutes: 5,
+	trackingMode: 'all',
+	trackedFiles: [],
+	namingFormat: 'date',
 };
 
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+export class MetinGitiSettingTab extends PluginSettingTab {
+	private readonly plugin: MetinGitiPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: MetinGitiPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	display(): void {
 		const { containerEl } = this;
-
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc("It's a secret")
+			.setName('Otomatik yedekleme')
+			.setDesc(
+				'Etkin notta değişiklik yapıldığında arka planda sessizce yedek alır.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.autoBackupEnabled)
+					.onChange(async (value) => {
+						this.plugin.settings.autoBackupEnabled = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Yedekleme aralığı (dakika)')
+			.setDesc(
+				'Son değişiklikten sonra otomatik yedek alınmadan önce beklenecek süre (en az 1 dakika).',
+			)
 			.addText((text) =>
 				text
-					.setPlaceholder('Enter your secret')
-					.setValue(this.plugin.settings.mySetting)
+					.setPlaceholder('5')
+					.setValue(
+						String(this.plugin.settings.autoBackupIntervalMinutes),
+					)
 					.onChange(async (value) => {
-						this.plugin.settings.mySetting = value;
+						const parsed = Number.parseInt(value, 10);
+						if (!Number.isNaN(parsed) && parsed >= 1) {
+							this.plugin.settings.autoBackupIntervalMinutes =
+								parsed;
+							await this.plugin.saveSettings();
+						}
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Takip modu')
+			.setDesc(
+				'Otomatik yedeklemenin tüm notlar için mi yoksa yalnızca seçtiğiniz notlar için mi çalışacağını belirleyin.',
+			)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('all', 'Tüm dosyalar')
+					.addOption(
+						'tracked-only',
+						'Sadece takip edilen dosyalar',
+					)
+					.setValue(this.plugin.settings.trackingMode)
+					.onChange(async (value) => {
+						this.plugin.settings.trackingMode =
+							value as TrackingMode;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Varsayılan / Hızlı kayıt isimlendirme biçimi')
+			.setDesc(
+				'Dosya için özel bir seçim yapılmadığında kullanılacak varsayılan etiket biçimini seçin.',
+			)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('date', 'Tarih ve saat (GG.AA.YYYY SS:DD)')
+					.addOption('sequence', 'Sıralı numara (v1, v2, v3...)')
+					.setValue(this.plugin.settings.namingFormat)
+					.onChange(async (value) => {
+						this.plugin.settings.namingFormat =
+							value as FileNamingMode;
 						await this.plugin.saveSettings();
 					}),
 			);
