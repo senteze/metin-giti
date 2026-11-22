@@ -1,57 +1,60 @@
+**English** | [Türkçe](README.tr.md)
+
 # Metin Giti
 
-**Metin Giti**, Obsidian içinde tek bir `.md` dosyası için geliştirilmiş; `commit`, `branch`, `merge` gibi teknik Git karmaşası olmadan çalışan, tamamen Türkçe ve insan odaklı doğrusal sürüm kontrol eklentisidir.
+**Metin Giti** is a human-friendly, linear version history plugin for individual Markdown (`.md`) notes in Obsidian—designed without technical Git concepts like `commit`, `branch`, or `merge`.
 
-## Temel Özellikler
+## Key Features
 
-- **Tek Tıkla Hızlı Kayıt ve Dosya Bazlı İsimlendirme**
-  - Sol şerit (ribbon) ve komut paleti üzerinden pencere açmadan anında **Hızlı Sürüm Kaydet** veya açıklamalı **Sürüm Kaydet**.
-  - Her dosya için ayrı ayrı seçilebilen otomatik isimlendirme biçimi: sıralı numara (`v1, v2, v3...`) veya tarih ve saat (`GG.AA.YYYY SS:DD`).
+- **Quick & Manual Version Saving**
+  - Save versions with a single click via **Quick Save** (from the ribbon or command palette) or add a custom label and description using **Save Version**.
+  - Per-file auto-naming preference: sequential numbering (`v1, v2, v3...`) or date and time (`DD.MM.YYYY HH:mm`).
 
-- **Sessiz Otomatik Yedekleme**
-  - Ayarlanabilir bekleme süresi (debounce) ile son düzenlemeden sonra arka planda sessiz yedekleme.
-  - Geri yükleme koruması sayesinde eski bir sürüme dönüldüğünde gereksiz otomatik yedek tetiklenmez.
-  - SHA-256 içerik özetiyle birebir aynı içerikler tekrar kaydedilmez; dosya başına en fazla son 30 otomatik yedek tutulur, manuel kayıtlar asla otomatik silinmez.
+- **Smart Auto-Backup & Move-Resilient Path Tracking**
+  - Silent background auto-backup with a configurable debounce wait time (in minutes) and status bar indicator.
+  - Restore protection prevents unnecessary auto-backups when reverting to an older version.
+  - SHA-256 content deduplication skips identical snapshots; up to 30 auto-backups are kept per note while manual versions are never automatically deleted.
+  - Track **All files** or **Tracked files only** with built-in vault path autocomplete (`AbstractInputSuggest`), existence validation, green connection status indicators, a non-intrusive **Test** button, and move-resilient `autoBackupTracked` metadata so tracked notes keep their backup coverage even when renamed or moved.
 
-- **Doğrusal Zaman Çizelgesi Paneli**
-  - Sağ kenar çubuğunda aktif notun sürüm geçmişini en yeni en üstte olacak şekilde listeler.
-  - Manuel kayıtlar arasındaki otomatik yedekleri katlanabilir gruplar halinde toplayarak görsel kalabalığı önler.
-  - **Eski Haline Dön** işleminde mevcut içerik geçmişte yoksa önce güvenlik yedeği alır; **Dışa Aktar** ile seçilen sürümü aynı klasöre bağımsız `.md` dosyası olarak kaydeder.
+- **Linear Timeline Sidebar (`metin-giti-timeline`)**
+  - Displays manual versions in reverse chronological order with labels, timestamps, and descriptions.
+  - Collapses consecutive auto-backups into clean expandable groups.
+  - Supports **Restore** (takes a silent safety backup if current content is unsaved), **Export** (creates a non-conflicting `.md` copy in the same folder), and single-version **Delete** (with confirmation modal and SHA-256-safe snapshot cleanup).
 
-- **Bölüm Bazlı 2 Sütunlu Fark Karşılaştırma ve Parçalı Geri Kazanım**
-  - Notları Markdown başlıklarına (`#` – `####`) göre bölümlere ayırarak **Yan Yana** (varsayılan) veya **Tek Sütun** görünümünde karşılaştırır.
-  - Değişen satırlarda kelime bazlı vurgulama yapar; değişmeyen bölümleri gizleyip gösterme filtresi ve esnek iki sürüm seçimi sunar.
-  - Eski sürümlerdeki bölümleri tek tıkla **Parçayı Kopyala** veya **Güncel Dosyaya Al** ile geri kazandırır.
+- **Side-by-Side Section Diff & Snippet Recovery (`metin-giti-diff`)**
+  - Splits notes by Markdown headings (`#`–`####`) and compares any two versions—or a version against the **Current Version**—in **Side-by-Side** (default) or **Single Column** layout.
+  - Includes word-level highlights (`diffWords`), an unchanged-sections filter, flexible left/right dropdown selectors with a **Swap** button, and 2-version selection directly from the timeline.
+  - Recover individual sections with **Copy Snippet** or **Apply to Current File**.
 
-- **Sol Dosya Gezgini Rozetleri ve Güvenli Silme**
-  - Sol dosya gezgininde sürüm geçmişi bulunan notların yanında canlı sürüm sayısı rozeti gösterir (tıklandığında ilgili notun zaman çizelgesini açar).
-  - Sürüm geçmişi olan bir not silindiğinde geçmişin korunması veya kalıcı olarak silinmesi için onay penceresi sunar.
+- **File Explorer Badges & Safe Deletion**
+  - Live version count badges next to `.md` notes in the left file explorer (click to open the note's timeline) and auto-backup shield icons on covered folders.
+  - Prompts with **Keep History** or **Delete History** when a tracked `.md` note is deleted.
 
-- **Temiz ve Taşınabilir Depolama**
-  - Notların YAML frontmatter alanına dokunmaz.
-  - Tüm geçmiş verilerini kasa kökündeki gizli `.metin-giti/` klasöründe (`app.vault.adapter` üzerinden, masaüstü ve mobil uyumlu) saklar; dosya taşıma/yeniden adlandırmada geçmişi korur.
+- **Bilingual Interface (TR / EN) & Clean Storage**
+  - Automatically adapts to Obsidian's language (`moment.locale()`) or can be set manually in **Settings → Metin Giti** (`Auto`, `Türkçe`, `English`).
+  - Never modifies your notes' YAML frontmatter. Stores all snapshots and metadata in a hidden `.metin-giti/` folder at the vault root using `app.vault.adapter` (desktop & mobile compatible).
 
-## Kurulum
+## Installation
 
-### Manuel Kurulum
+### Manual Installation
 
-1. Eklentinin `main.js`, `manifest.json` ve `styles.css` dosyalarını kasanızdaki `.obsidian/plugins/metin-giti/` klasörüne kopyalayın.
-2. Obsidian'da **Ayarlar → Topluluk eklentileri** bölümünden **Metin Giti** eklentisini etkinleştirin.
+1. Copy `main.js`, `manifest.json`, and `styles.css` into `<YourVault>/.obsidian/plugins/metin-giti/`.
+2. Open **Settings → Community plugins** in Obsidian and enable **Metin Giti**.
 
-### Geliştirici Kurulumu
+### Developer Setup
 
 ```bash
 npm install
 npm run build
 ```
 
-## Ekran Görüntüleri
+## Screenshots
 
-<!-- Ekran görüntüleri buraya eklenecektir:
-![Zaman Çizelgesi](docs/timeline.png)
-![Yan Yana Karşılaştırma](docs/diff-split.png)
+<!-- Screenshots will be added here:
+![Version Timeline](docs/timeline.png)
+![Side-by-Side Diff](docs/diff-split.png)
 -->
 
-## Lisans
+## License
 
 [MIT](LICENSE)
