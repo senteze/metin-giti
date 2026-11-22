@@ -7,6 +7,7 @@ import {
 	buildSplitDiffRows,
 	computeSectionDiff,
 } from '../diff/section-diff';
+import { t } from '../i18n';
 import { VersionStore } from '../storage/version-store';
 import { VersionMeta } from '../types';
 import { computeContentHash } from '../utils/hash';
@@ -51,9 +52,9 @@ export class DiffView extends ItemView {
 
 	getDisplayText(): string {
 		if (this.target) {
-			return `${this.target.file.basename} — Karşılaştırma`;
+			return t('diffTabTitle', { basename: this.target.file.basename });
 		}
-		return 'Sürüm Karşılaştırma';
+		return t('diffDisplayText');
 	}
 
 	getIcon(): string {
@@ -91,7 +92,7 @@ export class DiffView extends ItemView {
 		if (!this.target) {
 			const emptyEl = contentEl.createDiv({ cls: 'mg-diff-empty' });
 			emptyEl.createEl('p', {
-				text: 'Karşılaştırmak için sağ panelden bir sürüm seçin.',
+				text: t('diffEmptySelect'),
 			});
 			return;
 		}
@@ -102,7 +103,7 @@ export class DiffView extends ItemView {
 		if (!(currentFile instanceof TFile)) {
 			const emptyEl = contentEl.createDiv({ cls: 'mg-diff-empty' });
 			emptyEl.createEl('p', {
-				text: 'Karşılaştırılan dosya artık kasada bulunmuyor.',
+				text: t('diffEmptyMissingFile'),
 			});
 			return;
 		}
@@ -135,12 +136,11 @@ export class DiffView extends ItemView {
 		if (leftResolved.content === null || rightResolved.content === null) {
 			const emptyEl = contentEl.createDiv({ cls: 'mg-diff-empty' });
 			emptyEl.createEl('p', {
-				text: 'Seçilen sürümlerden birinin içeriği okunamadı.',
+				text: t('diffEmptyReadError'),
 			});
 			return;
 		}
 
-		// old = Right (compared old version), new = Left (new/current version)
 		const diffItems = computeSectionDiff(
 			rightResolved.content,
 			leftResolved.content,
@@ -169,12 +169,12 @@ export class DiffView extends ItemView {
 		currentContent: string,
 	): Promise<{ label: string; content: string | null }> {
 		if (sideId === CURRENT_SIDE_ID) {
-			return { label: 'Güncel Hal', content: currentContent };
+			return { label: t('labelCurrentVersion'), content: currentContent };
 		}
 
 		const meta = versions.find((v) => v.id === sideId);
 		if (!meta) {
-			return { label: 'Bilinmeyen Sürüm', content: null };
+			return { label: t('diffUnknownVersion'), content: null };
 		}
 
 		const content = await this.store.readVersionContent(file, meta.id);
@@ -193,7 +193,11 @@ export class DiffView extends ItemView {
 
 		const titleEl = headerEl.createDiv({ cls: 'mg-diff-title' });
 		titleEl.setText(
-			`${file.name} — "${leftLabel}" ile "${rightLabel}" Karşılaştırması`,
+			t('diffHeaderTitle', {
+				fileName: file.name,
+				leftLabel,
+				rightLabel,
+			}),
 		);
 
 		if (this.target) {
@@ -211,15 +215,15 @@ export class DiffView extends ItemView {
 
 		const statsEl = controlsEl.createDiv({ cls: 'mg-diff-stats' });
 		statsEl.createSpan({
-			text: `${changedCount} değişen`,
+			text: t('diffStatChanged', { count: changedCount }),
 			cls: 'mg-diff-stat mg-stat-changed',
 		});
 		statsEl.createSpan({
-			text: `${removedCount} silinen`,
+			text: t('diffStatRemoved', { count: removedCount }),
 			cls: 'mg-diff-stat mg-stat-removed',
 		});
 		statsEl.createSpan({
-			text: `${addedCount} eklenen`,
+			text: t('diffStatAdded', { count: addedCount }),
 			cls: 'mg-diff-stat mg-stat-added',
 		});
 
@@ -231,7 +235,7 @@ export class DiffView extends ItemView {
 			cls: 'mg-diff-layout-switch',
 		});
 		const splitBtn = layoutSwitch.createEl('button', {
-			text: 'Yan Yana',
+			text: t('diffLayoutSplit'),
 			cls:
 				this.layoutMode === 'split'
 					? 'mg-btn-compact mod-cta'
@@ -246,7 +250,7 @@ export class DiffView extends ItemView {
 		});
 
 		const unifiedBtn = layoutSwitch.createEl('button', {
-			text: 'Tek Sütun',
+			text: t('diffLayoutUnified'),
 			cls:
 				this.layoutMode === 'unified'
 					? 'mg-btn-compact mod-cta'
@@ -273,7 +277,7 @@ export class DiffView extends ItemView {
 			void this.refresh();
 		});
 		toggleLabel.createSpan({
-			text: `Değişmeyen bölümleri göster (${unchangedCount})`,
+			text: t('diffShowUnchanged', { count: unchangedCount }),
 		});
 	}
 
@@ -284,10 +288,9 @@ export class DiffView extends ItemView {
 	): void {
 		const rowEl = headerEl.createDiv({ cls: 'mg-diff-selectors' });
 
-		// Left (New / Current)
 		const leftWrap = rowEl.createDiv({ cls: 'mg-diff-select-group' });
 		leftWrap.createSpan({
-			text: 'Sol (Yeni / Güncel):',
+			text: t('diffLeftSelectorLabel'),
 			cls: 'mg-diff-select-label',
 		});
 		const leftSelect = leftWrap.createEl('select', {
@@ -295,7 +298,7 @@ export class DiffView extends ItemView {
 		});
 		const leftCurrentOpt = leftSelect.createEl('option', {
 			value: CURRENT_SIDE_ID,
-			text: 'Güncel Hal',
+			text: t('labelCurrentVersion'),
 		});
 		if (target.leftId === CURRENT_SIDE_ID) {
 			leftCurrentOpt.selected = true;
@@ -316,13 +319,12 @@ export class DiffView extends ItemView {
 			}
 		});
 
-		// Swap button
 		const swapBtn = rowEl.createEl('button', {
 			cls: 'mg-diff-swap-btn',
 		});
 		swapBtn.type = 'button';
-		swapBtn.setAttribute('aria-label', 'Yer Değiştir');
-		swapBtn.setAttribute('title', 'Yer Değiştir');
+		swapBtn.setAttribute('aria-label', t('diffSwapLabel'));
+		swapBtn.setAttribute('title', t('diffSwapLabel'));
 		setIcon(swapBtn, 'arrow-left-right');
 		swapBtn.addEventListener('click', () => {
 			if (this.target) {
@@ -333,10 +335,9 @@ export class DiffView extends ItemView {
 			}
 		});
 
-		// Right (Old / Compared)
 		const rightWrap = rowEl.createDiv({ cls: 'mg-diff-select-group' });
 		rightWrap.createSpan({
-			text: 'Sağ (Eski / Karşılaştırılan):',
+			text: t('diffRightSelectorLabel'),
 			cls: 'mg-diff-select-label',
 		});
 		const rightSelect = rightWrap.createEl('select', {
@@ -353,7 +354,7 @@ export class DiffView extends ItemView {
 		}
 		const rightCurrentOpt = rightSelect.createEl('option', {
 			value: CURRENT_SIDE_ID,
-			text: 'Güncel Hal',
+			text: t('labelCurrentVersion'),
 		});
 		if (target.rightId === CURRENT_SIDE_ID) {
 			rightCurrentOpt.selected = true;
@@ -368,7 +369,7 @@ export class DiffView extends ItemView {
 
 	private formatOptionLabel(version: VersionMeta): string {
 		return version.kind === 'auto'
-			? `Oto-yedek • ${version.label}`
+			? t('autoBackupCardTitle', { label: version.label })
 			: version.label;
 	}
 
@@ -388,7 +389,7 @@ export class DiffView extends ItemView {
 		if (visibleItems.length === 0) {
 			const emptyEl = bodyEl.createDiv({ cls: 'mg-diff-empty' });
 			emptyEl.createEl('p', {
-				text: 'Seçilen iki sürüm arasında hiçbir fark yok.',
+				text: t('diffNoDifferences'),
 			});
 			return;
 		}
@@ -428,7 +429,6 @@ export class DiffView extends ItemView {
 			cls: `mg-diff-badge mg-diff-badge-${item.status}`,
 		});
 
-		// Recovery buttons always act on the Right (old/compared) section
 		if (
 			item.oldSection &&
 			(item.status === 'changed' || item.status === 'removed')
@@ -439,26 +439,26 @@ export class DiffView extends ItemView {
 			});
 
 			const copyBtn = actionsEl.createEl('button', {
-				text: 'Parçayı Kopyala',
+				text: t('btnCopySnippet'),
 				cls: 'mg-btn-action',
 			});
 			copyBtn.type = 'button';
 			copyBtn.setAttribute(
 				'title',
-				`Sağ sütundaki "${rightLabel}" sürümünden bu bölümü panoya kopyala`,
+				t('tooltipCopySnippet', { label: rightLabel }),
 			);
 			copyBtn.addEventListener('click', () => {
 				void this.copySection(oldSection.rawContent, rightLabel);
 			});
 
 			const applyBtn = actionsEl.createEl('button', {
-				text: 'Güncel Dosyaya Al',
+				text: t('btnApplySnippet'),
 				cls: 'mod-cta mg-btn-action',
 			});
 			applyBtn.type = 'button';
 			applyBtn.setAttribute(
 				'title',
-				`Sağ sütundaki "${rightLabel}" sürümünden bu bölümü güncel dosyaya al`,
+				t('tooltipApplySnippet', { label: rightLabel }),
 			);
 			applyBtn.addEventListener('click', () => {
 				void this.applySection(
@@ -516,7 +516,7 @@ export class DiffView extends ItemView {
 				cls: 'mg-diff-split-pane mg-diff-split-cell-right mg-diff-split-empty-side',
 			});
 			rightPane.createSpan({
-				text: 'Bu bölüm karşılaştırılan sürümde yok',
+				text: t('diffSectionAbsentRight'),
 				cls: 'mg-diff-split-empty-text',
 			});
 			return;
@@ -528,7 +528,7 @@ export class DiffView extends ItemView {
 				cls: 'mg-diff-split-pane mg-diff-split-cell-left mg-diff-split-empty-side',
 			});
 			leftPane.createSpan({
-				text: 'Bu bölüm sol taraftaki metinde yok',
+				text: t('diffSectionAbsentLeft'),
 				cls: 'mg-diff-split-empty-text',
 			});
 
@@ -678,13 +678,13 @@ export class DiffView extends ItemView {
 	private getStatusLabel(status: SectionDiffStatus): string {
 		switch (status) {
 			case 'changed':
-				return 'Değişti';
+				return t('diffStatusChanged');
 			case 'removed':
-				return 'Silindi';
+				return t('diffStatusRemoved');
 			case 'added':
-				return 'Eklendi';
+				return t('diffStatusAdded');
 			case 'unchanged':
-				return 'Değişmedi';
+				return t('diffStatusUnchanged');
 		}
 	}
 
@@ -694,10 +694,10 @@ export class DiffView extends ItemView {
 	): Promise<void> {
 		try {
 			await navigator.clipboard.writeText(content);
-			new Notice(`"${rightLabel}" bölüm içeriği panoya kopyalandı.`);
+			new Notice(t('noticeCopiedSnippet', { label: rightLabel }));
 		} catch (error) {
-			console.error('Metin Giti pano kopyalama hatası:', error);
-			new Notice('Bölüm kopyalanamadı.');
+			console.error('Metin Giti clipboard error:', error);
+			new Notice(t('noticeCopyError'));
 		}
 	}
 
@@ -728,11 +728,14 @@ export class DiffView extends ItemView {
 			this.callbacks.onContentUpdated();
 			await this.refresh();
 			new Notice(
-				`"${sectionTitle}" bölümü ("${rightLabel}") güncel dosyaya alındı.`,
+				t('noticeAppliedSnippet', {
+					title: sectionTitle,
+					label: rightLabel,
+				}),
 			);
 		} catch (error) {
-			console.error('Metin Giti parça alma hatası:', error);
-			new Notice('Bölüm güncel dosyaya alınırken bir hata oluştu.');
+			console.error('Metin Giti apply snippet error:', error);
+			new Notice(t('noticeApplyError'));
 		}
 	}
 }

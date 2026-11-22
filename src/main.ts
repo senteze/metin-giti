@@ -1,5 +1,6 @@
 import { Notice, Plugin, TAbstractFile, TFile } from 'obsidian';
 import { AutoBackupManager } from './backup/auto-backup';
+import { setLanguagePreference, t } from './i18n';
 import { DEFAULT_SETTINGS, MetinGitiSettingTab } from './settings';
 import { VersionStore } from './storage/version-store';
 import { MetinGitiSettings } from './types';
@@ -22,6 +23,7 @@ export default class MetinGitiPlugin extends Plugin {
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		setLanguagePreference(this.settings.language);
 
 		this.versionStore = new VersionStore(this.app);
 		await this.versionStore.initialize();
@@ -89,21 +91,21 @@ export default class MetinGitiPlugin extends Plugin {
 				}),
 		);
 
-		this.addRibbonIcon('history', 'Sürüm Geçmişini Göster', () => {
+		this.addRibbonIcon('history', t('cmdShowHistory'), () => {
 			void this.activateTimelineView();
 		});
 
-		this.addRibbonIcon('bookmark-plus', 'Sürüm Kaydet', () => {
+		this.addRibbonIcon('bookmark-plus', t('cmdSaveVersion'), () => {
 			void this.openSaveVersionModal();
 		});
 
-		this.addRibbonIcon('zap', 'Hızlı Sürüm Kaydet', () => {
+		this.addRibbonIcon('zap', t('cmdQuickSave'), () => {
 			void this.quickSaveActiveFile();
 		});
 
 		this.addCommand({
 			id: 'show-version-history',
-			name: 'Sürüm Geçmişini Göster',
+			name: t('cmdShowHistory'),
 			callback: () => {
 				void this.activateTimelineView();
 			},
@@ -111,7 +113,7 @@ export default class MetinGitiPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'save-version',
-			name: 'Sürüm Kaydet',
+			name: t('cmdSaveVersion'),
 			callback: () => {
 				void this.openSaveVersionModal();
 			},
@@ -119,7 +121,7 @@ export default class MetinGitiPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'quick-save-version',
-			name: 'Hızlı Sürüm Kaydet',
+			name: t('cmdQuickSave'),
 			callback: () => {
 				void this.quickSaveActiveFile();
 			},
@@ -127,7 +129,7 @@ export default class MetinGitiPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'toggle-file-tracking',
-			name: 'Bu dosya için sürüm takibini aç/kapat',
+			name: t('cmdToggleTracking'),
 			checkCallback: (checking: boolean) => {
 				const activeFile = this.app.workspace.getActiveFile();
 				if (
@@ -195,13 +197,18 @@ export default class MetinGitiPlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+		setLanguagePreference(this.settings.language);
 		this.autoBackup?.configure(
 			this.settings.autoBackupEnabled,
 			this.settings.autoBackupIntervalMinutes,
 			this.settings.trackingMode,
 			this.settings.trackedFiles,
 		);
+		this.autoBackup?.refreshStatusText();
 		this.explorerBadges?.configure(this.settings.showExplorerBadges);
+		this.explorerBadges?.refresh();
+		void this.refreshTimelineViews();
+		void this.refreshDiffViews();
 	}
 
 	private async openFileAndTimeline(file: TFile): Promise<void> {
@@ -280,7 +287,7 @@ export default class MetinGitiPlugin extends Plugin {
 			!(activeFile instanceof TFile) ||
 			activeFile.extension.toLowerCase() !== 'md'
 		) {
-			new Notice('Sürüm kaydetmek için önce bir not açmalısınız.');
+			new Notice(t('noticeOpenNoteFirst'));
 			return null;
 		}
 		return activeFile;
@@ -332,15 +339,17 @@ export default class MetinGitiPlugin extends Plugin {
 				this.autoBackup.recordBackupTime(new Date());
 				void this.refreshTimelineViews();
 				this.explorerBadges.refresh();
-				new Notice(`Hızlı sürüm kaydedildi: ${result.version.label}`);
+				new Notice(
+					t('noticeQuickSaved', { label: result.version.label }),
+				);
 			} else if (result.reason === 'duplicate') {
-				new Notice('Değişiklik yok, yeni sürüm alınmadı');
+				new Notice(t('noticeNoChangesQuick'));
 			} else {
-				new Notice('Bu dosya türü desteklenmiyor.');
+				new Notice(t('noticeUnsupportedFile'));
 			}
 		} catch (error) {
-			console.error('Metin Giti hızlı sürüm kaydetme hatası:', error);
-			new Notice('Sürüm kaydedilirken bir hata oluştu.');
+			console.error('Metin Giti quick save error:', error);
+			new Notice(t('noticeSaveError'));
 		}
 	}
 
@@ -349,11 +358,11 @@ export default class MetinGitiPlugin extends Plugin {
 		if (index >= 0) {
 			this.settings.trackedFiles.splice(index, 1);
 			await this.saveSettings();
-			new Notice(`"${file.basename}" için sürüm takibi kapatıldı.`);
+			new Notice(t('noticeTrackingDisabled', { name: file.basename }));
 		} else {
 			this.settings.trackedFiles.push(file.path);
 			await this.saveSettings();
-			new Notice(`"${file.basename}" sürüm takibine alındı.`);
+			new Notice(t('noticeTrackingEnabled', { name: file.basename }));
 		}
 	}
 
@@ -394,7 +403,7 @@ export default class MetinGitiPlugin extends Plugin {
 							this.settings.trackedFiles.splice(trackedIdx, 1);
 							await this.saveSettings();
 						}
-						new Notice('Dosya sürüm geçmişi silindi');
+						new Notice(t('noticeHistoryDeleted'));
 						await this.refreshTimelineViews();
 						this.explorerBadges.refresh();
 					},

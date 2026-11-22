@@ -1,3 +1,5 @@
+import type { LanguagePreference } from './i18n';
+
 export type VersionKind = 'manual' | 'auto';
 
 export type TrackingMode = 'all' | 'tracked-only';
@@ -42,6 +44,7 @@ export interface VersionCountSummary {
 }
 
 export interface MetinGitiSettings {
+	language: LanguagePreference;
 	autoBackupEnabled: boolean;
 	autoBackupIntervalMinutes: number;
 	trackingMode: TrackingMode;

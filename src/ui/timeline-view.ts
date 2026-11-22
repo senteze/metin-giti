@@ -1,4 +1,5 @@
 import { ItemView, Notice, TFile, WorkspaceLeaf, normalizePath } from 'obsidian';
+import { t } from '../i18n';
 import { VersionStore } from '../storage/version-store';
 import { VersionMeta } from '../types';
 import { formatDateTimeLabel } from '../utils/date';
@@ -49,7 +50,7 @@ export class TimelineView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return 'Sürüm Geçmişi';
+		return t('timelineDisplayText');
 	}
 
 	getIcon(): string {
@@ -92,10 +93,7 @@ export class TimelineView extends ItemView {
 
 		if (!activeFile) {
 			this.currentVersions = [];
-			this.renderEmptyState(
-				bodyEl,
-				'Sürüm geçmişini görmek için bir not açın.',
-			);
+			this.renderEmptyState(bodyEl, t('timelineEmptyOpenNote'));
 			return;
 		}
 
@@ -106,10 +104,7 @@ export class TimelineView extends ItemView {
 
 		if (!history || history.versions.length === 0) {
 			this.currentVersions = [];
-			this.renderEmptyState(
-				bodyEl,
-				'Bu not için henüz kayıtlı sürüm yok.',
-			);
+			this.renderEmptyState(bodyEl, t('timelineEmptyNoVersions'));
 			return;
 		}
 
@@ -149,7 +144,7 @@ export class TimelineView extends ItemView {
 
 		const titleRow = headerEl.createDiv({ cls: 'mg-timeline-title-row' });
 		titleRow.createDiv({
-			text: activeFile ? activeFile.basename : 'Etkin not yok',
+			text: activeFile ? activeFile.basename : t('timelineNoActiveNote'),
 			cls: 'mg-timeline-filename',
 		});
 
@@ -158,7 +153,7 @@ export class TimelineView extends ItemView {
 		});
 
 		const saveBtn = actionsEl.createEl('button', {
-			text: 'Sürüm Kaydet',
+			text: t('cmdSaveVersion'),
 			cls: 'mod-cta mg-btn-compact',
 		});
 		saveBtn.type = 'button';
@@ -168,7 +163,7 @@ export class TimelineView extends ItemView {
 		});
 
 		const quickBtn = actionsEl.createEl('button', {
-			text: 'Hızlı Kaydet',
+			text: t('btnQuickSave'),
 			cls: 'mg-btn-compact',
 		});
 		quickBtn.type = 'button';
@@ -178,7 +173,9 @@ export class TimelineView extends ItemView {
 		});
 
 		const compareModeBtn = actionsEl.createEl('button', {
-			text: this.isCompareMode ? 'Seçimi İptal Et' : '2 Sürüm Karşılaştır',
+			text: this.isCompareMode
+				? t('btnCancelSelection')
+				: t('btnCompareTwo'),
 			cls: this.isCompareMode
 				? 'mg-btn-compact mg-btn-active'
 				: 'mg-btn-compact',
@@ -210,16 +207,18 @@ export class TimelineView extends ItemView {
 		currentCb.addEventListener('change', () => {
 			this.toggleCompareSelection(CURRENT_SIDE_ID, currentCb.checked);
 		});
-		currentRow.createSpan({ text: 'Güncel Hal' });
+		currentRow.createSpan({ text: t('labelCurrentVersion') });
 
 		const footerEl = barEl.createDiv({ cls: 'mg-compare-bar-footer' });
 		footerEl.createSpan({
-			text: `Seçilen: ${this.selectedCompareIds.length}/2`,
+			text: t('labelSelectedCount', {
+				count: this.selectedCompareIds.length,
+			}),
 			cls: 'mg-compare-count',
 		});
 
 		const runBtn = footerEl.createEl('button', {
-			text: 'Seçilenleri Karşılaştır',
+			text: t('btnCompareSelected'),
 			cls: 'mod-cta mg-btn-compact',
 		});
 		runBtn.type = 'button';
@@ -356,8 +355,8 @@ export class TimelineView extends ItemView {
 			const count = segment.versions.length;
 			toggleBtn.setText(
 				isExpanded
-					? `${count} otomatik yedek — gizlemek için tıkla`
-					: `${count} otomatik yedek — görmek için tıkla`,
+					? t('autoBackupGroupHide', { count })
+					: t('autoBackupGroupShow', { count }),
 			);
 			cardsContainer.empty();
 			if (!isExpanded) {
@@ -412,7 +411,9 @@ export class TimelineView extends ItemView {
 			});
 		}
 
-		const titleText = isAuto ? `Oto-yedek • ${version.label}` : version.label;
+		const titleText = isAuto
+			? t('autoBackupCardTitle', { label: version.label })
+			: version.label;
 		topRow.createSpan({
 			text: titleText,
 			cls: 'mg-version-label',
@@ -450,7 +451,7 @@ export class TimelineView extends ItemView {
 		const actionsEl = cardEl.createDiv({ cls: 'mg-version-actions' });
 
 		const compareBtn = actionsEl.createEl('button', {
-			text: 'Karşılaştır',
+			text: t('btnCompare'),
 			cls: 'mg-btn-action',
 		});
 		compareBtn.type = 'button';
@@ -463,7 +464,7 @@ export class TimelineView extends ItemView {
 		});
 
 		const restoreBtn = actionsEl.createEl('button', {
-			text: 'Eski Haline Dön',
+			text: t('btnRestore'),
 			cls: 'mg-btn-action',
 		});
 		restoreBtn.type = 'button';
@@ -472,7 +473,7 @@ export class TimelineView extends ItemView {
 		});
 
 		const exportBtn = actionsEl.createEl('button', {
-			text: 'Dışa Aktar',
+			text: t('btnExport'),
 			cls: 'mg-btn-action',
 		});
 		exportBtn.type = 'button';
@@ -492,11 +493,10 @@ export class TimelineView extends ItemView {
 					version.id,
 				);
 				if (snapshot === null) {
-					new Notice('Seçilen sürümün içeriği okunamadı.');
+					new Notice(t('noticeVersionReadError'));
 					return;
 				}
 
-				// Safety backup only if current content does not match any saved version in history
 				const currentContent = await this.app.vault.read(file);
 				const alreadySaved = await this.store.hasContentHash(
 					file,
@@ -509,7 +509,7 @@ export class TimelineView extends ItemView {
 				this.callbacks.onBeforeRestore(file, restoredHash);
 				await this.app.vault.modify(file, snapshot);
 				this.callbacks.onVersionRestored();
-				new Notice(`Not "${version.label}" sürümüne döndürüldü.`);
+				new Notice(t('noticeRestoredTo', { label: version.label }));
 			},
 		).open();
 	}
@@ -524,17 +524,17 @@ export class TimelineView extends ItemView {
 				version.id,
 			);
 			if (snapshot === null) {
-				new Notice('Seçilen sürümün içeriği okunamadı.');
+				new Notice(t('noticeVersionReadError'));
 				return;
 			}
 
 			const targetPath = await this.buildUniqueExportPath(file, version);
 			await this.app.vault.create(targetPath, snapshot);
 			const fileName = targetPath.split('/').pop() ?? targetPath;
-			new Notice(`Sürüm dışa aktarıldı: ${fileName}`);
+			new Notice(t('noticeExported', { fileName }));
 		} catch (error) {
-			console.error('Metin Giti dışa aktarma hatası:', error);
-			new Notice('Sürüm dışa aktarılırken bir hata oluştu.');
+			console.error('Metin Giti export error:', error);
+			new Notice(t('noticeExportError'));
 		}
 	}
 

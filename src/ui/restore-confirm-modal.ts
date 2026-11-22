@@ -1,4 +1,5 @@
 import { App, Modal } from 'obsidian';
+import { t } from '../i18n';
 import { VersionMeta } from '../types';
 import { formatDateTimeLabel } from '../utils/date';
 
@@ -26,27 +27,29 @@ export class RestoreConfirmModal extends Modal {
 		contentEl.addClass('mg-modal');
 
 		const headerEl = contentEl.createDiv({ cls: 'mg-modal-header' });
-		headerEl.createEl('h2', { text: 'Eski Haline Dön' });
+		headerEl.createEl('h2', { text: t('modalRestoreTitle') });
 
 		const bodyEl = contentEl.createDiv({ cls: 'mg-confirm-body' });
 		const dateText = formatDateTimeLabel(new Date(this.version.createdAt));
 
 		const msgEl = bodyEl.createEl('p', { cls: 'mg-confirm-message' });
-		msgEl.createSpan({ text: `"${this.fileName}" notunu ` });
+		msgEl.createSpan({
+			text: t('modalRestorePrefix', { name: this.fileName }),
+		});
 		msgEl.createEl('strong', { text: this.version.label });
 		msgEl.createSpan({
-			text: ` (${dateText}) sürümüne döndürmek istediğinizden emin misiniz?`,
+			text: t('modalRestoreSuffix', { date: dateText }),
 		});
 
 		bodyEl.createEl('p', {
-			text: 'Güvenliğiniz için mevcut içerik önce sessizce otomatik yedek olarak kaydedilecektir.',
+			text: t('modalRestoreSafetyNote'),
 			cls: 'mg-confirm-note',
 		});
 
 		const actionsEl = contentEl.createDiv({ cls: 'mg-modal-actions' });
 
 		const cancelBtn = actionsEl.createEl('button', {
-			text: 'İptal',
+			text: t('btnCancel'),
 			cls: 'mg-btn-secondary',
 		});
 		cancelBtn.type = 'button';
@@ -55,7 +58,7 @@ export class RestoreConfirmModal extends Modal {
 		});
 
 		const confirmBtn = actionsEl.createEl('button', {
-			text: 'Eski Haline Dön',
+			text: t('btnRestore'),
 			cls: 'mod-cta mg-btn-primary',
 		});
 		confirmBtn.type = 'button';

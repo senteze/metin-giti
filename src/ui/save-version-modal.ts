@@ -1,4 +1,5 @@
 import { App, Modal, Notice, Setting, TFile, TextComponent } from 'obsidian';
+import { t } from '../i18n';
 import { VersionStore } from '../storage/version-store';
 import { FileNamingMode } from '../types';
 
@@ -38,10 +39,13 @@ export class SaveVersionModal extends Modal {
 		contentEl.addClass('mg-modal');
 
 		const headerEl = contentEl.createDiv({ cls: 'mg-modal-header' });
-		headerEl.createEl('h2', { text: 'Sürüm Kaydet' });
+		headerEl.createEl('h2', { text: t('modalSaveTitle') });
 
 		const fileBadge = headerEl.createDiv({ cls: 'mg-modal-file' });
-		fileBadge.createSpan({ text: 'Not: ', cls: 'mg-modal-file-label' });
+		fileBadge.createSpan({
+			text: t('modalNotePrefix'),
+			cls: 'mg-modal-file-label',
+		});
 		fileBadge.createSpan({
 			text: this.file.basename,
 			cls: 'mg-modal-file-name',
@@ -49,7 +53,7 @@ export class SaveVersionModal extends Modal {
 
 		let nameInput: TextComponent | null = null;
 		const nameSetting = new Setting(contentEl)
-			.setName('Sürüm adı')
+			.setName(t('modalVersionName'))
 			.setDesc(this.getNameDesc(this.currentNamingMode))
 			.addText((text) => {
 				nameInput = text;
@@ -63,14 +67,12 @@ export class SaveVersionModal extends Modal {
 			});
 
 		new Setting(contentEl)
-			.setName('Bu dosya için otomatik isimlendirme')
-			.setDesc(
-				'Sürüm adı boş bırakıldığında ve hızlı kayıtta kullanılacak biçim.',
-			)
+			.setName(t('modalFileNamingName'))
+			.setDesc(t('modalFileNamingDesc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('date', 'Tarih ve saat (GG.AA.YYYY SS:DD)')
-					.addOption('sequence', 'Sıralı numara (v1, v2, v3...)')
+					.addOption('date', t('namingOptionDate'))
+					.addOption('sequence', t('namingOptionSequence'))
 					.setValue(this.currentNamingMode)
 					.onChange(async (value) => {
 						const nextMode = value as FileNamingMode;
@@ -84,13 +86,14 @@ export class SaveVersionModal extends Modal {
 			);
 
 		new Setting(contentEl)
-			.setName('Açıklama')
-			.setDesc('İsteğe bağlı olarak bu sürümde neler değiştiğini yazın.')
+			.setName(t('modalDescName'))
+			.setDesc(t('modalDescDesc'))
 			.addTextArea((area) => {
-				area.setPlaceholder('Örn. Giriş bölümü yeniden düzenlendi')
-					.onChange((value) => {
+				area.setPlaceholder(t('modalDescPlaceholder')).onChange(
+					(value) => {
 						this.descriptionValue = value;
-					});
+					},
+				);
 				area.inputEl.rows = 3;
 				area.inputEl.addClass('mg-textarea-full');
 			});
@@ -98,7 +101,7 @@ export class SaveVersionModal extends Modal {
 		const actionsEl = contentEl.createDiv({ cls: 'mg-modal-actions' });
 
 		const cancelBtn = actionsEl.createEl('button', {
-			text: 'İptal',
+			text: t('btnCancel'),
 			cls: 'mg-btn-secondary',
 		});
 		cancelBtn.type = 'button';
@@ -107,7 +110,7 @@ export class SaveVersionModal extends Modal {
 		});
 
 		const saveBtn = actionsEl.createEl('button', {
-			text: 'Kaydet',
+			text: t('btnSave'),
 			cls: 'mod-cta mg-btn-primary',
 		});
 		saveBtn.type = 'button';
@@ -128,9 +131,13 @@ export class SaveVersionModal extends Modal {
 
 	private getNameDesc(mode: FileNamingMode): string {
 		if (mode === 'sequence') {
-			return `Boş bırakırsanız otomatik olarak "${this.sequencePlaceholder}" atanır.`;
+			return t('modalVersionNameDescSeq', {
+				label: this.sequencePlaceholder,
+			});
 		}
-		return `Boş bırakırsanız tarih ve saat etiketi ("${this.datePlaceholder}") atanır.`;
+		return t('modalVersionNameDescDate', {
+			label: this.datePlaceholder,
+		});
 	}
 
 	private async handleSave(saveBtn: HTMLButtonElement): Promise<void> {
@@ -149,18 +156,18 @@ export class SaveVersionModal extends Modal {
 			});
 
 			if (result.saved) {
-				new Notice('Sürüm kaydedildi.');
+				new Notice(t('noticeVersionSaved'));
 				this.onSaved?.(new Date());
 				this.close();
 			} else if (result.reason === 'duplicate') {
-				new Notice('Son sürümden bu yana değişiklik yok.');
+				new Notice(t('noticeNoChangesSinceLast'));
 				this.close();
 			} else {
-				new Notice('Bu dosya türü desteklenmiyor.');
+				new Notice(t('noticeUnsupportedFile'));
 			}
 		} catch (error) {
-			console.error('Metin Giti sürüm kaydetme hatası:', error);
-			new Notice('Sürüm kaydedilirken bir hata oluştu.');
+			console.error('Metin Giti save error:', error);
+			new Notice(t('noticeSaveError'));
 		} finally {
 			this.isSaving = false;
 			saveBtn.disabled = false;

@@ -1,4 +1,5 @@
 import { App, TFile } from 'obsidian';
+import { t } from '../i18n';
 import { VersionStore } from '../storage/version-store';
 import { VersionCountSummary } from '../types';
 
@@ -214,10 +215,12 @@ export class FileExplorerBadges {
 	private formatTooltip(summary: VersionCountSummary): string {
 		const parts: string[] = [];
 		if (summary.manualCount > 0) {
-			parts.push(`${summary.manualCount} manuel sürüm`);
+			parts.push(
+				t('badgeManualCount', { count: summary.manualCount }),
+			);
 		}
 		if (summary.autoCount > 0) {
-			parts.push(`${summary.autoCount} otomatik yedek`);
+			parts.push(t('badgeAutoCount', { count: summary.autoCount }));
 		}
 		return parts.join(', ');
 	}

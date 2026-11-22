@@ -1,4 +1,5 @@
 import { App, Modal } from 'obsidian';
+import { t } from '../i18n';
 
 export class DeleteHistoryModal extends Modal {
 	private readonly fileName: string;
@@ -24,19 +25,19 @@ export class DeleteHistoryModal extends Modal {
 		contentEl.addClass('mg-modal');
 
 		const headerEl = contentEl.createDiv({ cls: 'mg-modal-header' });
-		headerEl.createEl('h2', { text: 'Sürüm Geçmişi Silinsin mi?' });
+		headerEl.createEl('h2', { text: t('modalDeleteHistoryTitle') });
 
 		const bodyEl = contentEl.createDiv({ cls: 'mg-confirm-body' });
 		const msgEl = bodyEl.createEl('p', { cls: 'mg-confirm-message' });
 		msgEl.createEl('strong', { text: this.fileName });
 		msgEl.createSpan({
-			text: ` silindi. Bu dosyaya ait ${this.versionCount} adet kayıtlı sürüm geçmişi de kalıcı olarak silinsin mi?`,
+			text: t('modalDeleteHistorySuffix', { count: this.versionCount }),
 		});
 
 		const actionsEl = contentEl.createDiv({ cls: 'mg-modal-actions' });
 
 		const keepBtn = actionsEl.createEl('button', {
-			text: 'Geçmişi Koru',
+			text: t('btnKeepHistory'),
 			cls: 'mg-btn-secondary',
 		});
 		keepBtn.type = 'button';
@@ -45,7 +46,7 @@ export class DeleteHistoryModal extends Modal {
 		});
 
 		const deleteBtn = actionsEl.createEl('button', {
-			text: 'Geçmişi de Sil',
+			text: t('btnDeleteHistory'),
 			cls: 'mod-warning mg-btn-danger',
 		});
 		deleteBtn.type = 'button';

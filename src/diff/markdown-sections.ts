@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 export interface MarkdownSection {
 	key: string;
 	title: string;
@@ -31,7 +33,7 @@ export function parseMarkdownSections(markdown: string): MarkdownSection[] {
 
 	let currentStart = 0;
 	let currentHeadingLine = '';
-	let currentTitle = 'Giriş / Başlıksız Bölüm';
+	let currentTitle = t('introSectionTitle');
 	let currentBaseKey = '__intro__';
 	let currentLevel = 0;
 	let inFence = false;

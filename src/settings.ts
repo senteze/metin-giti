@@ -1,4 +1,5 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
+import { LanguagePreference, t } from './i18n';
 import type MetinGitiPlugin from './main';
 import {
 	FileNamingMode,
@@ -7,6 +8,7 @@ import {
 } from './types';
 
 export const DEFAULT_SETTINGS: MetinGitiSettings = {
+	language: 'auto',
 	autoBackupEnabled: true,
 	autoBackupIntervalMinutes: 2,
 	trackingMode: 'all',
@@ -28,10 +30,25 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Otomatik yedekleme')
-			.setDesc(
-				'Etkin notta değişiklik yapıldığında arka planda sessizce yedek alır.',
-			)
+			.setName(t('settingLanguageName'))
+			.setDesc(t('settingLanguageDesc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('auto', t('settingLanguageAuto'))
+					.addOption('tr', t('settingLanguageTr'))
+					.addOption('en', t('settingLanguageEn'))
+					.setValue(this.plugin.settings.language)
+					.onChange(async (value) => {
+						this.plugin.settings.language =
+							value as LanguagePreference;
+						await this.plugin.saveSettings();
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(t('settingAutoBackupName'))
+			.setDesc(t('settingAutoBackupDesc'))
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.autoBackupEnabled)
@@ -42,10 +59,8 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Otomatik yedekleme bekleme süresi (dakika)')
-			.setDesc(
-				'Son değişiklikten sonra otomatik yedek alınmadan önce beklenecek süre (en az 1 dakika).',
-			)
+			.setName(t('settingIntervalName'))
+			.setDesc(t('settingIntervalDesc'))
 			.addText((text) =>
 				text
 					.setPlaceholder('2')
@@ -63,17 +78,12 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Takip modu')
-			.setDesc(
-				'Otomatik yedeklemenin tüm notlar için mi yoksa yalnızca seçtiğiniz notlar için mi çalışacağını belirleyin.',
-			)
+			.setName(t('settingTrackingModeName'))
+			.setDesc(t('settingTrackingModeDesc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('all', 'Tüm dosyalar')
-					.addOption(
-						'tracked-only',
-						'Sadece takip edilen dosyalar',
-					)
+					.addOption('all', t('settingTrackingAll'))
+					.addOption('tracked-only', t('settingTrackingOnly'))
 					.setValue(this.plugin.settings.trackingMode)
 					.onChange(async (value) => {
 						this.plugin.settings.trackingMode =
@@ -83,14 +93,12 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Varsayılan / Hızlı kayıt isimlendirme biçimi')
-			.setDesc(
-				'Dosya için özel bir seçim yapılmadığında kullanılacak varsayılan etiket biçimini seçin.',
-			)
+			.setName(t('settingNamingFormatName'))
+			.setDesc(t('settingNamingFormatDesc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption('date', 'Tarih ve saat (GG.AA.YYYY SS:DD)')
-					.addOption('sequence', 'Sıralı numara (v1, v2, v3...)')
+					.addOption('date', t('namingOptionDate'))
+					.addOption('sequence', t('namingOptionSequence'))
 					.setValue(this.plugin.settings.namingFormat)
 					.onChange(async (value) => {
 						this.plugin.settings.namingFormat =
@@ -100,10 +108,8 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Dosya gezgininde sürüm rozetlerini göster')
-			.setDesc(
-				'Sol dosya gezgininde sürüm geçmişi olan notların yanında sürüm sayısı rozetini gösterir.',
-			)
+			.setName(t('settingExplorerBadgesName'))
+			.setDesc(t('settingExplorerBadgesDesc'))
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.showExplorerBadges)

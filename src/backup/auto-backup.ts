@@ -1,4 +1,5 @@
 import { App, TAbstractFile, TFile } from 'obsidian';
+import { t } from '../i18n';
 import { VersionStore } from '../storage/version-store';
 import { TrackingMode } from '../types';
 import { formatTimeShort } from '../utils/date';
@@ -20,6 +21,7 @@ export class AutoBackupManager {
 	private suppressedUntil: Map<string, number> = new Map();
 	private restoredHashes: Map<string, string> = new Map();
 	private runningFiles: Set<string> = new Set();
+	private lastBackupDate: Date | null = null;
 
 	constructor(
 		app: App,
@@ -59,10 +61,17 @@ export class AutoBackupManager {
 
 		if (!this.enabled) {
 			this.clearAllTimers();
-			this.statusEl.setText('Oto-yedek kapalı');
+			this.statusEl.setText(t('statusAutoBackupOff'));
 			return;
 		}
 
+		this.renderInitialStatus();
+	}
+
+	/**
+	 * Re-renders the status bar text using the current active language.
+	 */
+	refreshStatusText(): void {
 		this.renderInitialStatus();
 	}
 
@@ -125,11 +134,14 @@ export class AutoBackupManager {
 	 * Updates the status bar timestamp after a manual or automatic save.
 	 */
 	recordBackupTime(date: Date): void {
+		this.lastBackupDate = date;
 		if (!this.enabled) {
-			this.statusEl.setText('Oto-yedek kapalı');
+			this.statusEl.setText(t('statusAutoBackupOff'));
 			return;
 		}
-		this.statusEl.setText(`Son yedek: ${formatTimeShort(date)}`);
+		this.statusEl.setText(
+			t('statusLastBackupTime', { time: formatTimeShort(date) }),
+		);
 	}
 
 	/**
@@ -151,10 +163,18 @@ export class AutoBackupManager {
 
 	private renderInitialStatus(): void {
 		if (!this.enabled) {
-			this.statusEl.setText('Oto-yedek kapalı');
+			this.statusEl.setText(t('statusAutoBackupOff'));
 			return;
 		}
-		this.statusEl.setText('Son yedek: —');
+		if (this.lastBackupDate) {
+			this.statusEl.setText(
+				t('statusLastBackupTime', {
+					time: formatTimeShort(this.lastBackupDate),
+				}),
+			);
+			return;
+		}
+		this.statusEl.setText(t('statusLastBackupEmpty'));
 	}
 
 	private scheduleDebounceForFile(filePath: string): void {
