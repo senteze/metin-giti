@@ -628,8 +628,7 @@ export class DiffView extends ItemView {
 						? 'mg-diff-line-removed'
 						: 'mg-diff-line-context';
 				const prefix = part.added ? '+ ' : part.removed ? '- ' : '  ';
-				const rawLines = part.value.replace(/\n$/, '').split('\n');
-				for (const line of rawLines) {
+				for (const line of part.value) {
 					const row = linesEl.createDiv({
 						cls: `mg-diff-line ${lineClass}`,
 					});

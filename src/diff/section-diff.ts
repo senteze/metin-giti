@@ -1,4 +1,4 @@
-import { Change, diffLines, diffWords } from 'diff';
+import { ArrayChange, Change, diffArrays, diffWords } from 'diff';
 import { MarkdownSection, parseMarkdownSections } from './markdown-sections';
 
 export type SectionDiffStatus = 'changed' | 'removed' | 'added' | 'unchanged';
@@ -10,7 +10,7 @@ export interface SectionDiffItem {
 	status: SectionDiffStatus;
 	oldSection: MarkdownSection | null;
 	newSection: MarkdownSection | null;
-	lineChanges: Change[];
+	lineChanges: ArrayChange<string>[];
 }
 
 export interface SplitDiffCell {
@@ -100,6 +100,12 @@ export function computeSectionDiff(
 				lineChanges: [],
 			});
 		} else {
+			const oldLines = oldSec.rawContent
+				.replace(/\r\n/g, '\n')
+				.split('\n');
+			const newLines = newSec.rawContent
+				.replace(/\r\n/g, '\n')
+				.split('\n');
 			result.push({
 				key: oldSec.key,
 				title: oldSec.title,
@@ -107,17 +113,13 @@ export function computeSectionDiff(
 				status: 'changed',
 				oldSection: oldSec,
 				newSection: newSec,
-				lineChanges: diffLines(oldSec.rawContent, newSec.rawContent),
+				lineChanges: diffArrays(oldLines, newLines),
 			});
 		}
 	}
 
 	flushAddedBefore(null);
 	return result;
-}
-
-function splitChangeLines(value: string): string[] {
-	return value.replace(/\n$/, '').split('\n');
 }
 
 /**
@@ -149,10 +151,10 @@ export function buildSplitDiffRows(item: SectionDiffItem): SplitDiffRow[] {
 
 		if (current.removed) {
 			const next = changes[i + 1];
-			const removedLines = splitChangeLines(current.value);
+			const removedLines = current.value;
 
 			if (next && next.added) {
-				const addedLines = splitChangeLines(next.value);
+				const addedLines = next.value;
 				const maxLen = Math.max(removedLines.length, addedLines.length);
 
 				for (let j = 0; j < maxLen; j++) {
@@ -213,8 +215,7 @@ export function buildSplitDiffRows(item: SectionDiffItem): SplitDiffRow[] {
 		}
 
 		if (current.added) {
-			const addedLines = splitChangeLines(current.value);
-			for (const newText of addedLines) {
+			for (const newText of current.value) {
 				rows.push({
 					left: {
 						kind: 'added',
@@ -227,8 +228,7 @@ export function buildSplitDiffRows(item: SectionDiffItem): SplitDiffRow[] {
 			continue;
 		}
 
-		const contextLines = splitChangeLines(current.value);
-		for (const line of contextLines) {
+		for (const line of current.value) {
 			rows.push({
 				left: { kind: 'context', lineNumber: leftLine++, text: line },
 				right: { kind: 'context', lineNumber: rightLine++, text: line },

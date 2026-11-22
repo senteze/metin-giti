@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS: MetinGitiSettings = {
 	trackingMode: 'all',
 	trackedFiles: [],
 	namingFormat: 'date',
+	showExplorerBadges: true,
 };
 
 export class MetinGitiSettingTab extends PluginSettingTab {
@@ -94,6 +95,20 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.namingFormat =
 							value as FileNamingMode;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Dosya gezgininde sürüm rozetlerini göster')
+			.setDesc(
+				'Sol dosya gezgininde sürüm geçmişi olan notların yanında sürüm sayısı rozetini gösterir.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showExplorerBadges)
+					.onChange(async (value) => {
+						this.plugin.settings.showExplorerBadges = value;
 						await this.plugin.saveSettings();
 					}),
 			);

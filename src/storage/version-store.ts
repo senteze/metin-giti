@@ -5,6 +5,7 @@ import {
 	IndexMap,
 	SaveVersionOptions,
 	SaveVersionResult,
+	VersionCountSummary,
 	VersionMeta,
 } from '../types';
 import { formatDateTimeLabel } from '../utils/date';
@@ -18,18 +19,27 @@ const MAX_AUTO_VERSIONS = 30;
 export class VersionStore {
 	private readonly app: App;
 	private queue: Promise<void> = Promise.resolve();
+	private summaryCache: Map<string, VersionCountSummary> = new Map();
 
 	constructor(app: App) {
 		this.app = app;
 	}
 
 	/**
-	 * Ensures the base .metin-giti directory structure and index.json exist.
+	 * Ensures the base .metin-giti directory structure exists and warms up the summary cache.
 	 */
 	async initialize(): Promise<void> {
 		await this.enqueue(async () => {
 			await this.ensureBaseStructure();
+			await this.loadSummaryCache();
 		});
+	}
+
+	/**
+	 * Returns the cached manual/auto version counts for a file path without disk I/O.
+	 */
+	getCachedSummary(filePath: string): VersionCountSummary | null {
+		return this.summaryCache.get(filePath) ?? null;
 	}
 
 	/**
@@ -241,6 +251,7 @@ export class VersionStore {
 
 			await this.pruneAutoVersions(docId, meta);
 			await this.writeDocMeta(docId, meta);
+			this.updateSummaryCache(file.path, meta);
 
 			return { saved: true, version: versionMeta };
 		});
@@ -261,6 +272,12 @@ export class VersionStore {
 			delete index[oldPath];
 			index[newPath] = docId;
 			await this.writeIndex(index);
+
+			const cached = this.summaryCache.get(oldPath);
+			if (cached) {
+				this.summaryCache.delete(oldPath);
+				this.summaryCache.set(newPath, cached);
+			}
 
 			const metaPath = this.getMetaPath(docId);
 			if (await this.app.vault.adapter.exists(metaPath)) {
@@ -310,6 +327,7 @@ export class VersionStore {
 					await this.app.vault.adapter.rmdir(docDir, true);
 				}
 			}
+			this.summaryCache.delete(filePath);
 		});
 	}
 
@@ -326,7 +344,39 @@ export class VersionStore {
 
 			delete index[filePath];
 			await this.writeIndex(index);
+			this.summaryCache.delete(filePath);
 		});
+	}
+
+	private async loadSummaryCache(): Promise<void> {
+		this.summaryCache.clear();
+		const index = await this.readIndex();
+		for (const [filePath, docId] of Object.entries(index)) {
+			const metaPath = this.getMetaPath(docId);
+			if (!(await this.app.vault.adapter.exists(metaPath))) {
+				continue;
+			}
+			const meta = await this.readDocMeta(docId, filePath);
+			this.updateSummaryCache(filePath, meta);
+		}
+	}
+
+	private updateSummaryCache(filePath: string, meta: DocHistoryMeta): void {
+		let manualCount = 0;
+		let autoCount = 0;
+		for (const version of meta.versions) {
+			if (version.kind === 'manual') {
+				manualCount += 1;
+			} else {
+				autoCount += 1;
+			}
+		}
+
+		if (manualCount === 0 && autoCount === 0) {
+			this.summaryCache.delete(filePath);
+		} else {
+			this.summaryCache.set(filePath, { manualCount, autoCount });
+		}
 	}
 
 	private resolveDefaultLabel(

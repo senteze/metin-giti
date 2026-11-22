@@ -9,6 +9,7 @@ import {
 	DIFF_VIEW_TYPE,
 	DiffView,
 } from './ui/diff-view';
+import { FileExplorerBadges } from './ui/file-explorer-badges';
 import { SaveVersionModal } from './ui/save-version-modal';
 import { TIMELINE_VIEW_TYPE, TimelineView } from './ui/timeline-view';
 import { formatDateTimeLabel } from './utils/date';
@@ -17,6 +18,7 @@ export default class MetinGitiPlugin extends Plugin {
 	settings!: MetinGitiSettings;
 	private versionStore!: VersionStore;
 	private autoBackup!: AutoBackupManager;
+	private explorerBadges!: FileExplorerBadges;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -35,6 +37,16 @@ export default class MetinGitiPlugin extends Plugin {
 			this.settings.trackedFiles,
 			() => {
 				void this.refreshTimelineViews();
+				this.explorerBadges.refresh();
+			},
+		);
+
+		this.explorerBadges = new FileExplorerBadges(
+			this.app,
+			this.versionStore,
+			this.settings.showExplorerBadges,
+			(file) => {
+				void this.openFileAndTimeline(file);
 			},
 		);
 
@@ -138,6 +150,16 @@ export default class MetinGitiPlugin extends Plugin {
 		);
 
 		this.registerEvent(
+			this.app.workspace.on('layout-change', () => {
+				this.explorerBadges.refresh();
+			}),
+		);
+
+		this.app.workspace.onLayoutReady(() => {
+			this.explorerBadges.start();
+		});
+
+		this.registerEvent(
 			this.app.vault.on('modify', (file) => {
 				this.autoBackup.markDirty(file);
 			}),
@@ -160,6 +182,7 @@ export default class MetinGitiPlugin extends Plugin {
 
 	onunload(): void {
 		this.autoBackup?.destroy();
+		this.explorerBadges?.destroy();
 	}
 
 	async loadSettings(): Promise<void> {
@@ -178,6 +201,16 @@ export default class MetinGitiPlugin extends Plugin {
 			this.settings.trackingMode,
 			this.settings.trackedFiles,
 		);
+		this.explorerBadges?.configure(this.settings.showExplorerBadges);
+	}
+
+	private async openFileAndTimeline(file: TFile): Promise<void> {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile || activeFile.path !== file.path) {
+			const leaf = this.app.workspace.getLeaf(false);
+			await leaf.openFile(file);
+		}
+		await this.activateTimelineView();
 	}
 
 	private async activateTimelineView(): Promise<void> {
@@ -278,6 +311,7 @@ export default class MetinGitiPlugin extends Plugin {
 			(savedAt) => {
 				this.autoBackup.recordBackupTime(savedAt);
 				void this.refreshTimelineViews();
+				this.explorerBadges.refresh();
 			},
 		).open();
 	}
@@ -297,6 +331,7 @@ export default class MetinGitiPlugin extends Plugin {
 			if (result.saved && result.version) {
 				this.autoBackup.recordBackupTime(new Date());
 				void this.refreshTimelineViews();
+				this.explorerBadges.refresh();
 				new Notice(`Hızlı sürüm kaydedildi: ${result.version.label}`);
 			} else if (result.reason === 'duplicate') {
 				new Notice('Değişiklik yok, yeni sürüm alınmadı');
@@ -333,6 +368,7 @@ export default class MetinGitiPlugin extends Plugin {
 			await this.saveSettings();
 		}
 		await this.refreshTimelineViews();
+		this.explorerBadges.refresh();
 	}
 
 	private async handleVaultDelete(file: TAbstractFile): Promise<void> {
@@ -360,6 +396,7 @@ export default class MetinGitiPlugin extends Plugin {
 						}
 						new Notice('Dosya sürüm geçmişi silindi');
 						await this.refreshTimelineViews();
+						this.explorerBadges.refresh();
 					},
 				).open();
 			} else {
@@ -368,5 +405,6 @@ export default class MetinGitiPlugin extends Plugin {
 		}
 
 		await this.refreshTimelineViews();
+		this.explorerBadges.refresh();
 	}
 }

@@ -36,10 +36,16 @@ export interface SaveVersionResult {
 	version?: VersionMeta;
 }
 
+export interface VersionCountSummary {
+	manualCount: number;
+	autoCount: number;
+}
+
 export interface MetinGitiSettings {
 	autoBackupEnabled: boolean;
 	autoBackupIntervalMinutes: number;
 	trackingMode: TrackingMode;
 	trackedFiles: string[];
 	namingFormat: FileNamingMode;
+	showExplorerBadges: boolean;
 }
