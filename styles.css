@@ -226,3 +226,397 @@
 .mg-hidden {
 	display: none;
 }
+
+.mg-version-card-clickable {
+	cursor: pointer;
+}
+
+.mg-version-card-clickable:hover .mg-version-label {
+	color: var(--interactive-accent);
+}
+
+/* Orta Alan Sürüm Karşılaştırma Görünümü */
+.mg-diff-root {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: var(--size-4-4);
+	gap: var(--size-4-4);
+	overflow-y: auto;
+}
+
+.mg-diff-header {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+	padding-bottom: var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.mg-diff-title {
+	font-size: var(--font-ui-large);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.mg-diff-controls {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: var(--size-4-3);
+}
+
+.mg-diff-stats {
+	display: flex;
+	gap: var(--size-4-3);
+	font-size: var(--font-ui-small);
+}
+
+.mg-diff-stat {
+	font-weight: var(--font-medium);
+}
+
+.mg-stat-changed {
+	color: var(--text-accent);
+}
+
+.mg-stat-removed {
+	color: var(--text-error);
+}
+
+.mg-stat-added {
+	color: var(--text-success);
+}
+
+.mg-diff-toggle-label {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.mg-diff-sections {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-4);
+}
+
+.mg-diff-empty {
+	color: var(--text-muted);
+	text-align: center;
+	padding: var(--size-4-6);
+}
+
+.mg-diff-card {
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	overflow: hidden;
+}
+
+.mg-diff-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	padding: var(--size-4-2) var(--size-4-3);
+	background-color: var(--background-primary-alt);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.mg-diff-card-title-wrap {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	flex-wrap: wrap;
+}
+
+.mg-diff-section-title {
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.mg-diff-badge {
+	font-size: var(--font-ui-smaller);
+	padding: 2px var(--size-4-2);
+	border-radius: var(--radius-s);
+	font-weight: var(--font-medium);
+}
+
+.mg-diff-badge-changed {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-accent);
+}
+
+.mg-diff-badge-removed {
+	background-color: rgba(var(--color-red-rgb), 0.15);
+	color: var(--text-error);
+}
+
+.mg-diff-badge-added {
+	background-color: rgba(var(--color-green-rgb), 0.15);
+	color: var(--text-success);
+}
+
+.mg-diff-badge-unchanged {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-muted);
+}
+
+.mg-diff-card-actions {
+	display: flex;
+	gap: var(--size-4-2);
+}
+
+.mg-diff-lines {
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	line-height: 1.5;
+	overflow-x: auto;
+}
+
+.mg-diff-line {
+	display: flex;
+	padding: 1px var(--size-4-3);
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.mg-diff-prefix {
+	user-select: none;
+	flex-shrink: 0;
+	width: 2ch;
+	color: var(--text-muted);
+}
+
+.mg-diff-text {
+	flex: 1;
+}
+
+.mg-diff-line-added {
+	background-color: rgba(var(--color-green-rgb), 0.14);
+	color: var(--text-normal);
+}
+
+.mg-diff-line-added .mg-diff-prefix {
+	color: var(--text-success);
+}
+
+.mg-diff-line-removed {
+	background-color: rgba(var(--color-red-rgb), 0.14);
+	color: var(--text-normal);
+}
+
+.mg-diff-line-removed .mg-diff-prefix {
+	color: var(--text-error);
+}
+
+.mg-diff-line-context {
+	color: var(--text-muted);
+}
+
+/* İki Sürüm Seçme Modu ve Karşılaştırma Seçicileri */
+.mg-btn-active {
+	border-color: var(--interactive-accent);
+	color: var(--interactive-accent);
+}
+
+.mg-compare-bar {
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-2) var(--size-4-3);
+	margin-bottom: var(--size-4-3);
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+}
+
+.mg-compare-current-option {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-medium);
+	cursor: pointer;
+}
+
+.mg-compare-bar-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-2);
+}
+
+.mg-compare-count {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.mg-compare-checkbox {
+	margin: 0;
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.mg-diff-selectors {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	margin-top: var(--size-4-1);
+}
+
+.mg-diff-select-group {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	flex: 1 1 200px;
+}
+
+.mg-diff-select-label {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.mg-diff-select {
+	flex: 1;
+	min-width: 140px;
+}
+
+.mg-diff-swap-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--size-4-1) var(--size-4-2);
+	cursor: pointer;
+}
+
+/* Yan Yana (Side-by-Side) 2 Sütunlu Fark Görünümü */
+.mg-diff-right-controls {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-3);
+	flex-wrap: wrap;
+}
+
+.mg-diff-layout-switch {
+	display: inline-flex;
+	gap: var(--size-4-1);
+}
+
+.mg-diff-split-wrap {
+	display: flex;
+	flex-direction: column;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	line-height: 1.5;
+}
+
+.mg-diff-split-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+}
+
+.mg-diff-split-header {
+	background-color: var(--background-secondary-alt);
+	border-bottom: 1px solid var(--background-modifier-border);
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-semibold);
+	color: var(--text-muted);
+}
+
+.mg-diff-split-col-header {
+	padding: var(--size-4-1) var(--size-4-3);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mg-diff-split-cell-left {
+	border-right: 1px solid var(--background-modifier-border);
+	min-width: 0;
+}
+
+.mg-diff-split-cell-right {
+	min-width: 0;
+}
+
+.mg-diff-split-pane {
+	display: flex;
+	flex-direction: column;
+}
+
+.mg-diff-split-cell {
+	display: flex;
+	align-items: stretch;
+	padding: 1px var(--size-4-2);
+	white-space: pre-wrap;
+	word-break: break-word;
+	height: 100%;
+}
+
+.mg-diff-lineno {
+	user-select: none;
+	flex-shrink: 0;
+	width: 3.2ch;
+	text-align: right;
+	padding-right: var(--size-4-2);
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
+.mg-diff-split-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.mg-diff-split-added {
+	background-color: rgba(var(--color-green-rgb), 0.12);
+	color: var(--text-normal);
+}
+
+.mg-diff-split-removed {
+	background-color: rgba(var(--color-red-rgb), 0.12);
+	color: var(--text-normal);
+}
+
+.mg-diff-split-context {
+	color: var(--text-muted);
+}
+
+.mg-diff-split-spacer {
+	background-color: var(--background-primary-alt);
+	opacity: 0.55;
+}
+
+.mg-diff-word-added {
+	background-color: rgba(var(--color-green-rgb), 0.32);
+	border-radius: 2px;
+}
+
+.mg-diff-word-removed {
+	background-color: rgba(var(--color-red-rgb), 0.32);
+	border-radius: 2px;
+}
+
+.mg-diff-split-empty-side {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--size-4-4);
+	background-color: var(--background-primary-alt);
+}
+
+.mg-diff-split-empty-text {
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	font-style: italic;
+}

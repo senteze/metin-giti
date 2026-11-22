@@ -4,6 +4,11 @@ import { DEFAULT_SETTINGS, MetinGitiSettingTab } from './settings';
 import { VersionStore } from './storage/version-store';
 import { MetinGitiSettings } from './types';
 import { DeleteHistoryModal } from './ui/delete-history-modal';
+import {
+	CURRENT_SIDE_ID,
+	DIFF_VIEW_TYPE,
+	DiffView,
+} from './ui/diff-view';
 import { SaveVersionModal } from './ui/save-version-modal';
 import { TIMELINE_VIEW_TYPE, TimelineView } from './ui/timeline-view';
 import { formatDateTimeLabel } from './utils/date';
@@ -39,6 +44,8 @@ export default class MetinGitiPlugin extends Plugin {
 				new TimelineView(leaf, this.versionStore, {
 					onSaveModal: () => this.openSaveVersionModal(),
 					onQuickSave: () => this.quickSaveActiveFile(),
+					onCompareVersion: (file, leftId, rightId) =>
+						this.openDiffView(file, leftId, rightId),
 					onBeforeRestore: (file, restoredHash) => {
 						this.autoBackup.suppressAfterRestore(
 							file.path,
@@ -46,6 +53,24 @@ export default class MetinGitiPlugin extends Plugin {
 						);
 					},
 					onVersionRestored: () => {
+						this.autoBackup.recordBackupTime(new Date());
+						void this.refreshTimelineViews();
+						void this.refreshDiffViews();
+					},
+				}),
+		);
+
+		this.registerView(
+			DIFF_VIEW_TYPE,
+			(leaf) =>
+				new DiffView(leaf, this.versionStore, {
+					onBeforeRestore: (file, restoredHash) => {
+						this.autoBackup.suppressAfterRestore(
+							file.path,
+							restoredHash,
+						);
+					},
+					onContentUpdated: () => {
 						this.autoBackup.recordBackupTime(new Date());
 						void this.refreshTimelineViews();
 					},
@@ -181,6 +206,36 @@ export default class MetinGitiPlugin extends Plugin {
 		const leaves = this.app.workspace.getLeavesOfType(TIMELINE_VIEW_TYPE);
 		for (const leaf of leaves) {
 			if (leaf.view instanceof TimelineView) {
+				await leaf.view.refresh();
+			}
+		}
+	}
+
+	private async openDiffView(
+		file: TFile,
+		leftId: string,
+		rightId: string = CURRENT_SIDE_ID,
+	): Promise<void> {
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType(DIFF_VIEW_TYPE)[0];
+		if (!leaf) {
+			leaf = workspace.getLeaf('tab');
+			await leaf.setViewState({
+				type: DIFF_VIEW_TYPE,
+				active: true,
+			});
+		}
+
+		await workspace.revealLeaf(leaf);
+		if (leaf.view instanceof DiffView) {
+			await leaf.view.setTarget(file, leftId, rightId);
+		}
+	}
+
+	private async refreshDiffViews(): Promise<void> {
+		const leaves = this.app.workspace.getLeavesOfType(DIFF_VIEW_TYPE);
+		for (const leaf of leaves) {
+			if (leaf.view instanceof DiffView) {
 				await leaf.view.refresh();
 			}
 		}

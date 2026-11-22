@@ -3,6 +3,7 @@ import { VersionStore } from '../storage/version-store';
 import { VersionMeta } from '../types';
 import { formatDateTimeLabel } from '../utils/date';
 import { computeContentHash } from '../utils/hash';
+import { CURRENT_SIDE_ID } from './diff-view';
 import { RestoreConfirmModal } from './restore-confirm-modal';
 
 export const TIMELINE_VIEW_TYPE = 'metin-giti-timeline';
@@ -10,6 +11,11 @@ export const TIMELINE_VIEW_TYPE = 'metin-giti-timeline';
 export interface TimelineViewCallbacks {
 	onSaveModal: () => Promise<void>;
 	onQuickSave: () => Promise<void>;
+	onCompareVersion: (
+		file: TFile,
+		leftId: string,
+		rightId: string,
+	) => Promise<void>;
 	onBeforeRestore: (file: TFile, restoredHash: string) => void;
 	onVersionRestored: () => void;
 }
@@ -23,6 +29,10 @@ export class TimelineView extends ItemView {
 	private readonly callbacks: TimelineViewCallbacks;
 	private readonly expandedGroups: Set<string> = new Set();
 	private renderToken = 0;
+	private isCompareMode = false;
+	private selectedCompareIds: string[] = [];
+	private selectedFilePath: string | null = null;
+	private currentVersions: VersionMeta[] = [];
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -53,6 +63,10 @@ export class TimelineView extends ItemView {
 	async onClose(): Promise<void> {
 		this.renderToken += 1;
 		this.expandedGroups.clear();
+		this.isCompareMode = false;
+		this.selectedCompareIds = [];
+		this.selectedFilePath = null;
+		this.currentVersions = [];
 		this.contentEl.empty();
 	}
 
@@ -66,11 +80,18 @@ export class TimelineView extends ItemView {
 		contentEl.addClass('mg-timeline-root');
 
 		const activeFile = this.getActiveMarkdownFile();
+		if (!activeFile || activeFile.path !== this.selectedFilePath) {
+			this.isCompareMode = false;
+			this.selectedCompareIds = [];
+			this.selectedFilePath = activeFile?.path ?? null;
+		}
+
 		this.renderHeader(contentEl, activeFile);
 
 		const bodyEl = contentEl.createDiv({ cls: 'mg-timeline-body' });
 
 		if (!activeFile) {
+			this.currentVersions = [];
 			this.renderEmptyState(
 				bodyEl,
 				'Sürüm geçmişini görmek için bir not açın.',
@@ -84,11 +105,17 @@ export class TimelineView extends ItemView {
 		}
 
 		if (!history || history.versions.length === 0) {
+			this.currentVersions = [];
 			this.renderEmptyState(
 				bodyEl,
 				'Bu not için henüz kayıtlı sürüm yok.',
 			);
 			return;
+		}
+
+		this.currentVersions = history.versions;
+		if (this.isCompareMode) {
+			this.renderCompareBar(bodyEl, activeFile);
 		}
 
 		const segments = this.groupVersions(
@@ -149,6 +176,102 @@ export class TimelineView extends ItemView {
 		quickBtn.addEventListener('click', () => {
 			void this.callbacks.onQuickSave();
 		});
+
+		const compareModeBtn = actionsEl.createEl('button', {
+			text: this.isCompareMode ? 'Seçimi İptal Et' : '2 Sürüm Karşılaştır',
+			cls: this.isCompareMode
+				? 'mg-btn-compact mg-btn-active'
+				: 'mg-btn-compact',
+		});
+		compareModeBtn.type = 'button';
+		compareModeBtn.disabled = !activeFile;
+		compareModeBtn.addEventListener('click', () => {
+			this.isCompareMode = !this.isCompareMode;
+			this.selectedCompareIds = [];
+			void this.refresh();
+		});
+	}
+
+	private renderCompareBar(bodyEl: HTMLElement, file: TFile): void {
+		const barEl = bodyEl.createDiv({ cls: 'mg-compare-bar' });
+
+		const currentRow = barEl.createEl('label', {
+			cls: 'mg-compare-current-option',
+		});
+		const currentCb = currentRow.createEl('input', {
+			type: 'checkbox',
+			cls: 'mg-compare-checkbox',
+		});
+		const isCurrentSelected =
+			this.selectedCompareIds.includes(CURRENT_SIDE_ID);
+		currentCb.checked = isCurrentSelected;
+		currentCb.disabled =
+			!isCurrentSelected && this.selectedCompareIds.length >= 2;
+		currentCb.addEventListener('change', () => {
+			this.toggleCompareSelection(CURRENT_SIDE_ID, currentCb.checked);
+		});
+		currentRow.createSpan({ text: 'Güncel Hal' });
+
+		const footerEl = barEl.createDiv({ cls: 'mg-compare-bar-footer' });
+		footerEl.createSpan({
+			text: `Seçilen: ${this.selectedCompareIds.length}/2`,
+			cls: 'mg-compare-count',
+		});
+
+		const runBtn = footerEl.createEl('button', {
+			text: 'Seçilenleri Karşılaştır',
+			cls: 'mod-cta mg-btn-compact',
+		});
+		runBtn.type = 'button';
+		runBtn.disabled = this.selectedCompareIds.length !== 2;
+		runBtn.addEventListener('click', () => {
+			void this.runTwoVersionCompare(file);
+		});
+	}
+
+	private toggleCompareSelection(id: string, checked: boolean): void {
+		if (checked) {
+			if (
+				!this.selectedCompareIds.includes(id) &&
+				this.selectedCompareIds.length < 2
+			) {
+				this.selectedCompareIds.push(id);
+			}
+		} else {
+			this.selectedCompareIds = this.selectedCompareIds.filter(
+				(item) => item !== id,
+			);
+		}
+		void this.refresh();
+	}
+
+	private async runTwoVersionCompare(file: TFile): Promise<void> {
+		if (this.selectedCompareIds.length !== 2) {
+			return;
+		}
+		const [firstId, secondId] = this.selectedCompareIds;
+		if (!firstId || !secondId) {
+			return;
+		}
+
+		const getTimestamp = (id: string): number => {
+			if (id === CURRENT_SIDE_ID) {
+				return Number.POSITIVE_INFINITY;
+			}
+			const meta = this.currentVersions.find((v) => v.id === id);
+			return meta ? new Date(meta.createdAt).getTime() : 0;
+		};
+
+		const sorted = [firstId, secondId].sort(
+			(a, b) => getTimestamp(b) - getTimestamp(a),
+		);
+		const newerId = sorted[0] ?? firstId;
+		const olderId = sorted[1] ?? secondId;
+
+		this.isCompareMode = false;
+		this.selectedCompareIds = [];
+		await this.refresh();
+		await this.callbacks.onCompareVersion(file, newerId, olderId);
 	}
 
 	private renderEmptyState(containerEl: HTMLElement, message: string): void {
@@ -269,11 +392,44 @@ export class TimelineView extends ItemView {
 		version: VersionMeta,
 		isAuto: boolean,
 	): void {
-		const topRow = cardEl.createDiv({ cls: 'mg-version-card-top' });
+		const topRow = cardEl.createDiv({
+			cls: 'mg-version-card-top mg-version-card-clickable',
+		});
+
+		if (this.isCompareMode) {
+			const cb = topRow.createEl('input', {
+				type: 'checkbox',
+				cls: 'mg-compare-checkbox',
+			});
+			const isSelected = this.selectedCompareIds.includes(version.id);
+			cb.checked = isSelected;
+			cb.disabled = !isSelected && this.selectedCompareIds.length >= 2;
+			cb.addEventListener('click', (evt) => {
+				evt.stopPropagation();
+			});
+			cb.addEventListener('change', () => {
+				this.toggleCompareSelection(version.id, cb.checked);
+			});
+		}
+
 		const titleText = isAuto ? `Oto-yedek • ${version.label}` : version.label;
 		topRow.createSpan({
 			text: titleText,
 			cls: 'mg-version-label',
+		});
+		topRow.addEventListener('click', () => {
+			if (this.isCompareMode) {
+				const isSelected = this.selectedCompareIds.includes(version.id);
+				if (isSelected || this.selectedCompareIds.length < 2) {
+					this.toggleCompareSelection(version.id, !isSelected);
+				}
+				return;
+			}
+			void this.callbacks.onCompareVersion(
+				file,
+				CURRENT_SIDE_ID,
+				version.id,
+			);
 		});
 
 		const dateText = formatDateTimeLabel(new Date(version.createdAt));
@@ -292,6 +448,19 @@ export class TimelineView extends ItemView {
 		}
 
 		const actionsEl = cardEl.createDiv({ cls: 'mg-version-actions' });
+
+		const compareBtn = actionsEl.createEl('button', {
+			text: 'Karşılaştır',
+			cls: 'mg-btn-action',
+		});
+		compareBtn.type = 'button';
+		compareBtn.addEventListener('click', () => {
+			void this.callbacks.onCompareVersion(
+				file,
+				CURRENT_SIDE_ID,
+				version.id,
+			);
+		});
 
 		const restoreBtn = actionsEl.createEl('button', {
 			text: 'Eski Haline Dön',
