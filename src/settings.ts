@@ -8,7 +8,7 @@ import {
 
 export const DEFAULT_SETTINGS: MetinGitiSettings = {
 	autoBackupEnabled: true,
-	autoBackupIntervalMinutes: 5,
+	autoBackupIntervalMinutes: 2,
 	trackingMode: 'all',
 	trackedFiles: [],
 	namingFormat: 'date',
@@ -41,13 +41,13 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName('Yedekleme aralığı (dakika)')
+			.setName('Otomatik yedekleme bekleme süresi (dakika)')
 			.setDesc(
 				'Son değişiklikten sonra otomatik yedek alınmadan önce beklenecek süre (en az 1 dakika).',
 			)
 			.addText((text) =>
 				text
-					.setPlaceholder('5')
+					.setPlaceholder('2')
 					.setValue(
 						String(this.plugin.settings.autoBackupIntervalMinutes),
 					)

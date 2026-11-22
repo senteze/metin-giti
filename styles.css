@@ -30,7 +30,199 @@
 	margin-top: var(--size-4-4);
 }
 
+.mg-confirm-body {
+	margin-bottom: var(--size-4-3);
+}
+
+.mg-confirm-message {
+	margin: 0 0 var(--size-4-2) 0;
+	line-height: 1.5;
+}
+
+.mg-confirm-note {
+	margin: 0;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
 .mg-status-bar {
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
+}
+
+/* Sağ Kenar Çubuğu Zaman Çizelgesi */
+.mg-timeline-root {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: var(--size-4-3);
+	gap: var(--size-4-3);
+}
+
+.mg-timeline-header {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+	padding-bottom: var(--size-4-3);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.mg-timeline-title-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.mg-timeline-filename {
+	font-size: var(--font-ui-medium);
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+	word-break: break-word;
+}
+
+.mg-timeline-top-actions {
+	display: flex;
+	gap: var(--size-4-2);
+	flex-wrap: wrap;
+}
+
+.mg-btn-compact {
+	font-size: var(--font-ui-small);
+	padding: var(--size-4-1) var(--size-4-2);
+}
+
+.mg-timeline-body {
+	flex: 1;
+	overflow-y: auto;
+}
+
+.mg-timeline-empty {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	padding: var(--size-4-4) var(--size-4-2);
+	text-align: center;
+}
+
+.mg-timeline-list {
+	position: relative;
+	padding-left: 18px;
+	margin-left: 6px;
+	border-left: 2px solid var(--background-modifier-border);
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-3);
+}
+
+.mg-timeline-item {
+	position: relative;
+}
+
+.mg-timeline-dot {
+	position: absolute;
+	left: -25px;
+	top: 10px;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	border: 2px solid var(--background-primary);
+}
+
+.mg-dot-manual {
+	background-color: var(--interactive-accent);
+}
+
+.mg-dot-auto {
+	top: 9px;
+	left: -23px;
+	width: 6px;
+	height: 6px;
+	background-color: var(--text-muted);
+}
+
+.mg-version-card {
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	padding: var(--size-4-2) var(--size-4-3);
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-1);
+}
+
+.mg-version-card-manual {
+	border-left: 3px solid var(--interactive-accent);
+}
+
+.mg-version-card-auto {
+	margin-top: var(--size-4-2);
+}
+
+.mg-version-card-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-2);
+}
+
+.mg-version-label {
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	word-break: break-word;
+}
+
+.mg-version-date {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.mg-version-desc {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	margin-top: 2px;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.mg-version-actions {
+	display: flex;
+	gap: var(--size-4-2);
+	margin-top: var(--size-4-2);
+	flex-wrap: wrap;
+}
+
+.mg-btn-action {
+	font-size: var(--font-ui-smaller);
+	padding: 2px var(--size-4-2);
+	height: auto;
+}
+
+.mg-auto-group-container {
+	display: flex;
+	flex-direction: column;
+}
+
+.mg-auto-group-toggle {
+	align-self: flex-start;
+	background: transparent;
+	border: 1px dashed var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	padding: var(--size-4-1) var(--size-4-2);
+	cursor: pointer;
+}
+
+.mg-auto-group-toggle:hover {
+	color: var(--text-normal);
+	border-color: var(--text-muted);
+}
+
+.mg-auto-group-list {
+	display: flex;
+	flex-direction: column;
+}
+
+.mg-hidden {
+	display: none;
 }

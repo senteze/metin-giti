@@ -108,6 +108,73 @@ export class VersionStore {
 	}
 
 	/**
+	 * Reads the version history metadata for a file, or null if not yet tracked.
+	 */
+	async getFileHistory(file: TFile): Promise<DocHistoryMeta | null> {
+		return this.enqueue(async () => {
+			const index = await this.readIndex();
+			const docId = index[file.path];
+			if (!docId) {
+				return null;
+			}
+			const metaPath = this.getMetaPath(docId);
+			if (!(await this.app.vault.adapter.exists(metaPath))) {
+				return null;
+			}
+			const meta = await this.readDocMeta(docId, file.path);
+			return {
+				...meta,
+				versions: [...meta.versions].sort(
+					(a, b) =>
+						new Date(b.createdAt).getTime() -
+						new Date(a.createdAt).getTime(),
+				),
+			};
+		});
+	}
+
+	/**
+	 * Checks whether the given content's hash already exists in any saved version of the file.
+	 */
+	async hasContentHash(file: TFile, content: string): Promise<boolean> {
+		const hash = await computeContentHash(content);
+		return this.enqueue(async () => {
+			const index = await this.readIndex();
+			const docId = index[file.path];
+			if (!docId) {
+				return false;
+			}
+			const metaPath = this.getMetaPath(docId);
+			if (!(await this.app.vault.adapter.exists(metaPath))) {
+				return false;
+			}
+			const meta = await this.readDocMeta(docId, file.path);
+			return meta.versions.some((version) => version.hash === hash);
+		});
+	}
+
+	/**
+	 * Reads the full Markdown snapshot content for a specific version.
+	 */
+	async readVersionContent(
+		file: TFile,
+		versionId: string,
+	): Promise<string | null> {
+		return this.enqueue(async () => {
+			const index = await this.readIndex();
+			const docId = index[file.path];
+			if (!docId) {
+				return null;
+			}
+			const snapshotPath = this.getSnapshotPath(docId, versionId);
+			if (!(await this.app.vault.adapter.exists(snapshotPath))) {
+				return null;
+			}
+			return this.app.vault.adapter.read(snapshotPath);
+		});
+	}
+
+	/**
 	 * Saves a snapshot of the given Markdown file if its content changed since the latest version.
 	 */
 	async saveVersion(
@@ -149,7 +216,12 @@ export class VersionStore {
 			const label =
 				trimmedLabel && trimmedLabel.length > 0
 					? trimmedLabel
-					: this.resolveDefaultLabel(meta, effectiveMode, now);
+					: this.resolveDefaultLabel(
+							meta,
+							effectiveMode,
+							now,
+							options.kind,
+						);
 
 			const versionMeta: VersionMeta = {
 				id: versionId,
@@ -200,6 +272,48 @@ export class VersionStore {
 	}
 
 	/**
+	 * Returns the number of saved versions for a file path, or 0 if none exist.
+	 */
+	async getVersionCountByPath(filePath: string): Promise<number> {
+		return this.enqueue(async () => {
+			const index = await this.readIndex();
+			const docId = index[filePath];
+			if (!docId) {
+				return 0;
+			}
+			const metaPath = this.getMetaPath(docId);
+			if (!(await this.app.vault.adapter.exists(metaPath))) {
+				return 0;
+			}
+			const meta = await this.readDocMeta(docId, filePath);
+			return meta.versions.length;
+		});
+	}
+
+	/**
+	 * Permanently deletes a file's index.json entry and its .metin-giti/history/<docId>/ folder.
+	 */
+	async deleteDocumentHistory(filePath: string): Promise<void> {
+		await this.enqueue(async () => {
+			await this.ensureBaseStructure();
+			const index = await this.readIndex();
+			const docId = index[filePath];
+
+			if (filePath in index) {
+				delete index[filePath];
+				await this.writeIndex(index);
+			}
+
+			if (docId) {
+				const docDir = this.getDocDir(docId);
+				if (await this.app.vault.adapter.exists(docDir)) {
+					await this.app.vault.adapter.rmdir(docDir, true);
+				}
+			}
+		});
+	}
+
+	/**
 	 * Removes a deleted file's path mapping from index.json.
 	 */
 	async handleDelete(filePath: string): Promise<void> {
@@ -219,7 +333,18 @@ export class VersionStore {
 		meta: DocHistoryMeta,
 		namingMode: FileNamingMode,
 		now: Date,
+		kind: VersionMeta['kind'],
 	): string {
+		if (kind === 'auto') {
+			if (namingMode === 'sequence') {
+				const manualCount = meta.versions.filter(
+					(version) => version.kind === 'manual',
+				).length;
+				return `v${manualCount} · ${formatDateTimeLabel(now)}`;
+			}
+			return formatDateTimeLabel(now);
+		}
+
 		if (namingMode === 'sequence') {
 			return this.computeSequentialLabel(meta);
 		}

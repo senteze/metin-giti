@@ -1,9 +1,11 @@
-import { Notice, Plugin, TFile } from 'obsidian';
+import { Notice, Plugin, TAbstractFile, TFile } from 'obsidian';
 import { AutoBackupManager } from './backup/auto-backup';
 import { DEFAULT_SETTINGS, MetinGitiSettingTab } from './settings';
 import { VersionStore } from './storage/version-store';
 import { MetinGitiSettings } from './types';
+import { DeleteHistoryModal } from './ui/delete-history-modal';
 import { SaveVersionModal } from './ui/save-version-modal';
+import { TIMELINE_VIEW_TYPE, TimelineView } from './ui/timeline-view';
 import { formatDateTimeLabel } from './utils/date';
 
 export default class MetinGitiPlugin extends Plugin {
@@ -26,14 +28,48 @@ export default class MetinGitiPlugin extends Plugin {
 			this.settings.autoBackupIntervalMinutes,
 			this.settings.trackingMode,
 			this.settings.trackedFiles,
+			() => {
+				void this.refreshTimelineViews();
+			},
 		);
 
-		this.addRibbonIcon('history', 'Sürüm Kaydet', () => {
+		this.registerView(
+			TIMELINE_VIEW_TYPE,
+			(leaf) =>
+				new TimelineView(leaf, this.versionStore, {
+					onSaveModal: () => this.openSaveVersionModal(),
+					onQuickSave: () => this.quickSaveActiveFile(),
+					onBeforeRestore: (file, restoredHash) => {
+						this.autoBackup.suppressAfterRestore(
+							file.path,
+							restoredHash,
+						);
+					},
+					onVersionRestored: () => {
+						this.autoBackup.recordBackupTime(new Date());
+						void this.refreshTimelineViews();
+					},
+				}),
+		);
+
+		this.addRibbonIcon('history', 'Sürüm Geçmişini Göster', () => {
+			void this.activateTimelineView();
+		});
+
+		this.addRibbonIcon('bookmark-plus', 'Sürüm Kaydet', () => {
 			void this.openSaveVersionModal();
 		});
 
 		this.addRibbonIcon('zap', 'Hızlı Sürüm Kaydet', () => {
 			void this.quickSaveActiveFile();
+		});
+
+		this.addCommand({
+			id: 'show-version-history',
+			name: 'Sürüm Geçmişini Göster',
+			callback: () => {
+				void this.activateTimelineView();
+			},
 		});
 
 		this.addCommand({
@@ -71,6 +107,12 @@ export default class MetinGitiPlugin extends Plugin {
 		});
 
 		this.registerEvent(
+			this.app.workspace.on('active-leaf-change', () => {
+				void this.refreshTimelineViews();
+			}),
+		);
+
+		this.registerEvent(
 			this.app.vault.on('modify', (file) => {
 				this.autoBackup.markDirty(file);
 			}),
@@ -84,7 +126,7 @@ export default class MetinGitiPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.vault.on('delete', (file) => {
-				void this.handleVaultDelete(file.path);
+				void this.handleVaultDelete(file);
 			}),
 		);
 
@@ -111,6 +153,37 @@ export default class MetinGitiPlugin extends Plugin {
 			this.settings.trackingMode,
 			this.settings.trackedFiles,
 		);
+	}
+
+	private async activateTimelineView(): Promise<void> {
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType(TIMELINE_VIEW_TYPE)[0];
+		if (!leaf) {
+			const rightLeaf = workspace.getRightLeaf(false);
+			if (rightLeaf) {
+				await rightLeaf.setViewState({
+					type: TIMELINE_VIEW_TYPE,
+					active: true,
+				});
+				leaf = rightLeaf;
+			}
+		}
+
+		if (leaf) {
+			await workspace.revealLeaf(leaf);
+			if (leaf.view instanceof TimelineView) {
+				await leaf.view.refresh();
+			}
+		}
+	}
+
+	private async refreshTimelineViews(): Promise<void> {
+		const leaves = this.app.workspace.getLeavesOfType(TIMELINE_VIEW_TYPE);
+		for (const leaf of leaves) {
+			if (leaf.view instanceof TimelineView) {
+				await leaf.view.refresh();
+			}
+		}
 	}
 
 	private getActiveMarkdownFile(): TFile | null {
@@ -149,6 +222,7 @@ export default class MetinGitiPlugin extends Plugin {
 			sequencePlaceholder,
 			(savedAt) => {
 				this.autoBackup.recordBackupTime(savedAt);
+				void this.refreshTimelineViews();
 			},
 		).open();
 	}
@@ -167,6 +241,7 @@ export default class MetinGitiPlugin extends Plugin {
 
 			if (result.saved && result.version) {
 				this.autoBackup.recordBackupTime(new Date());
+				void this.refreshTimelineViews();
 				new Notice(`Hızlı sürüm kaydedildi: ${result.version.label}`);
 			} else if (result.reason === 'duplicate') {
 				new Notice('Değişiklik yok, yeni sürüm alınmadı');
@@ -202,14 +277,41 @@ export default class MetinGitiPlugin extends Plugin {
 			this.settings.trackedFiles[trackedIdx] = newPath;
 			await this.saveSettings();
 		}
+		await this.refreshTimelineViews();
 	}
 
-	private async handleVaultDelete(filePath: string): Promise<void> {
-		await this.versionStore.handleDelete(filePath);
-		const trackedIdx = this.settings.trackedFiles.indexOf(filePath);
-		if (trackedIdx >= 0) {
-			this.settings.trackedFiles.splice(trackedIdx, 1);
-			await this.saveSettings();
+	private async handleVaultDelete(file: TAbstractFile): Promise<void> {
+		this.autoBackup.cancelForFile(file.path);
+
+		if (file instanceof TFile && file.extension.toLowerCase() === 'md') {
+			const versionCount = await this.versionStore.getVersionCountByPath(
+				file.path,
+			);
+			if (versionCount > 0) {
+				new DeleteHistoryModal(
+					this.app,
+					file.basename,
+					versionCount,
+					async () => {
+						await this.versionStore.deleteDocumentHistory(
+							file.path,
+						);
+						const trackedIdx = this.settings.trackedFiles.indexOf(
+							file.path,
+						);
+						if (trackedIdx >= 0) {
+							this.settings.trackedFiles.splice(trackedIdx, 1);
+							await this.saveSettings();
+						}
+						new Notice('Dosya sürüm geçmişi silindi');
+						await this.refreshTimelineViews();
+					},
+				).open();
+			} else {
+				await this.versionStore.handleDelete(file.path);
+			}
 		}
+
+		await this.refreshTimelineViews();
 	}
 }
