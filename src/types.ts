@@ -20,6 +20,7 @@ export interface DocHistoryMeta {
 	docId: string;
 	filePath: string;
 	namingMode?: FileNamingMode;
+	autoBackupTracked?: boolean;
 	versions: VersionMeta[];
 }
 

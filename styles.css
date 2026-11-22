@@ -645,3 +645,40 @@
 	font-weight: var(--font-normal);
 	opacity: 0.7;
 }
+
+/* Takip Edilen Dosya ve Klasör Listesi */
+.mg-tracked-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-1);
+	margin-bottom: var(--size-4-3);
+	padding: var(--size-4-2) var(--size-4-3);
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.mg-tracked-empty {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.mg-tracked-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-2);
+	padding: var(--size-4-1) 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.mg-tracked-item:last-child {
+	border-bottom: none;
+}
+
+.mg-tracked-path {
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	word-break: break-all;
+}

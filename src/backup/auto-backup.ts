@@ -4,6 +4,7 @@ import { VersionStore } from '../storage/version-store';
 import { TrackingMode } from '../types';
 import { formatTimeShort } from '../utils/date';
 import { computeContentHash } from '../utils/hash';
+import { matchesTrackedPath } from '../utils/path';
 
 const RESTORE_SUPPRESS_TTL_MS = 3500;
 
@@ -158,7 +159,10 @@ export class AutoBackupManager {
 		if (this.trackingMode === 'all') {
 			return true;
 		}
-		return this.trackedFiles.has(filePath);
+		if (matchesTrackedPath(filePath, this.trackedFiles)) {
+			return true;
+		}
+		return this.store.isFileAutoBackupTrackedSync(filePath);
 	}
 
 	private renderInitialStatus(): void {
@@ -216,6 +220,14 @@ export class AutoBackupManager {
 
 		this.runningFiles.add(filePath);
 		try {
+			if (
+				this.trackingMode === 'tracked-only' &&
+				matchesTrackedPath(filePath, this.trackedFiles) &&
+				!this.store.isFileAutoBackupTrackedSync(filePath)
+			) {
+				await this.store.setFileAutoBackupTracked(filePath, true);
+			}
+
 			const restoredHash = this.restoredHashes.get(filePath);
 			if (restoredHash) {
 				const currentContent = await this.app.vault.read(abstractFile);

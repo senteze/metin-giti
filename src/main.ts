@@ -353,14 +353,23 @@ export default class MetinGitiPlugin extends Plugin {
 		}
 	}
 
+	async setPathAutoBackupTracked(
+		filePath: string,
+		tracked: boolean,
+	): Promise<void> {
+		await this.versionStore.setFileAutoBackupTracked(filePath, tracked);
+	}
+
 	private async toggleFileTracking(file: TFile): Promise<void> {
 		const index = this.settings.trackedFiles.indexOf(file.path);
 		if (index >= 0) {
 			this.settings.trackedFiles.splice(index, 1);
+			await this.versionStore.setFileAutoBackupTracked(file.path, false);
 			await this.saveSettings();
 			new Notice(t('noticeTrackingDisabled', { name: file.basename }));
 		} else {
 			this.settings.trackedFiles.push(file.path);
+			await this.versionStore.setFileAutoBackupTracked(file.path, true);
 			await this.saveSettings();
 			new Notice(t('noticeTrackingEnabled', { name: file.basename }));
 		}

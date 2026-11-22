@@ -20,6 +20,7 @@ export class VersionStore {
 	private readonly app: App;
 	private queue: Promise<void> = Promise.resolve();
 	private summaryCache: Map<string, VersionCountSummary> = new Map();
+	private trackedCache: Set<string> = new Set();
 
 	constructor(app: App) {
 		this.app = app;
@@ -40,6 +41,61 @@ export class VersionStore {
 	 */
 	getCachedSummary(filePath: string): VersionCountSummary | null {
 		return this.summaryCache.get(filePath) ?? null;
+	}
+
+	/**
+	 * Returns true if the file's meta.json has autoBackupTracked === true (cached).
+	 */
+	isFileAutoBackupTrackedSync(filePath: string): boolean {
+		return this.trackedCache.has(filePath);
+	}
+
+	/**
+	 * Persists autoBackupTracked in the file's meta.json (creating docId/index entry if needed when tracked=true).
+	 */
+	async setFileAutoBackupTracked(
+		filePath: string,
+		tracked: boolean,
+	): Promise<void> {
+		if (!filePath.toLowerCase().endsWith('.md')) {
+			return;
+		}
+
+		await this.enqueue(async () => {
+			await this.ensureBaseStructure();
+			const index = await this.readIndex();
+			let docId = index[filePath];
+
+			if (!tracked) {
+				this.trackedCache.delete(filePath);
+				if (!docId) {
+					return;
+				}
+				const metaPath = this.getMetaPath(docId);
+				if (!(await this.app.vault.adapter.exists(metaPath))) {
+					return;
+				}
+				const meta = await this.readDocMeta(docId, filePath);
+				meta.autoBackupTracked = false;
+				await this.writeDocMeta(docId, meta);
+				return;
+			}
+
+			if (!docId) {
+				docId = generateId('doc');
+				index[filePath] = docId;
+				await this.writeIndex(index);
+			}
+
+			const docDir = this.getDocDir(docId);
+			await this.ensureDir(docDir);
+
+			const meta = await this.readDocMeta(docId, filePath);
+			meta.filePath = filePath;
+			meta.autoBackupTracked = true;
+			await this.writeDocMeta(docId, meta);
+			this.trackedCache.add(filePath);
+		});
 	}
 
 	/**
@@ -278,6 +334,10 @@ export class VersionStore {
 				this.summaryCache.delete(oldPath);
 				this.summaryCache.set(newPath, cached);
 			}
+			if (this.trackedCache.has(oldPath)) {
+				this.trackedCache.delete(oldPath);
+				this.trackedCache.add(newPath);
+			}
 
 			const metaPath = this.getMetaPath(docId);
 			if (await this.app.vault.adapter.exists(metaPath)) {
@@ -328,6 +388,7 @@ export class VersionStore {
 				}
 			}
 			this.summaryCache.delete(filePath);
+			this.trackedCache.delete(filePath);
 		});
 	}
 
@@ -345,11 +406,13 @@ export class VersionStore {
 			delete index[filePath];
 			await this.writeIndex(index);
 			this.summaryCache.delete(filePath);
+			this.trackedCache.delete(filePath);
 		});
 	}
 
 	private async loadSummaryCache(): Promise<void> {
 		this.summaryCache.clear();
+		this.trackedCache.clear();
 		const index = await this.readIndex();
 		for (const [filePath, docId] of Object.entries(index)) {
 			const metaPath = this.getMetaPath(docId);
@@ -358,6 +421,9 @@ export class VersionStore {
 			}
 			const meta = await this.readDocMeta(docId, filePath);
 			this.updateSummaryCache(filePath, meta);
+			if (meta.autoBackupTracked) {
+				this.trackedCache.add(filePath);
+			}
 		}
 	}
 
@@ -476,6 +542,7 @@ export class VersionStore {
 						docId,
 						filePath: parsed.filePath ?? filePath,
 						namingMode: parsed.namingMode,
+						autoBackupTracked: parsed.autoBackupTracked,
 						versions: parsed.versions,
 					};
 				}

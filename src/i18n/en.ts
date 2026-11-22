@@ -44,6 +44,13 @@ export const en: Record<TranslationKey, string> = {
 	settingExplorerBadgesName: 'Show version badges in file explorer',
 	settingExplorerBadgesDesc:
 		'Displays a version count badge next to notes with saved history in the file explorer.',
+	settingTrackedPathsName: 'Tracked files and folders',
+	settingTrackedPathsDesc:
+		'Add a file path (e.g. Notes/thesis.md) or folder path (e.g. Projects/ or Courses/Mechatronics).',
+	settingTrackedPathsPlaceholder: 'e.g. Projects/ or Notes/thesis.md',
+	btnAddTrackedPath: 'Add',
+	btnRemoveTrackedPath: 'Remove',
+	settingTrackedPathsEmpty: 'No tracked files or folders added yet.',
 
 	// Status bar
 	statusAutoBackupOff: 'Auto-backup off',

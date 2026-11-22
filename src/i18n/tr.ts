@@ -42,6 +42,13 @@ export const tr = {
 	settingExplorerBadgesName: 'Dosya gezgininde sürüm rozetlerini göster',
 	settingExplorerBadgesDesc:
 		'Sol dosya gezgininde sürüm geçmişi olan notların yanında sürüm sayısı rozetini gösterir.',
+	settingTrackedPathsName: 'Takip edilen dosya ve klasörler',
+	settingTrackedPathsDesc:
+		'Dosya yolu (örn. Notlar/tez.md) veya klasör yolu (örn. Projeler/ ya da Dersler/Mekatronik) ekleyin.',
+	settingTrackedPathsPlaceholder: 'Örn. Projeler/ veya Notlar/tez.md',
+	btnAddTrackedPath: 'Ekle',
+	btnRemoveTrackedPath: 'Kaldır',
+	settingTrackedPathsEmpty: 'Henüz takip edilen dosya veya klasör eklenmedi.',
 
 	// Status bar
 	statusAutoBackupOff: 'Oto-yedek kapalı',
