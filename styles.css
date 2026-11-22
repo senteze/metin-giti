@@ -682,3 +682,77 @@
 	color: var(--text-normal);
 	word-break: break-all;
 }
+
+.mg-btn-delete-version:hover {
+	color: var(--text-error);
+	border-color: var(--text-error);
+}
+
+/* Otomatik Tamamlama, Takip Doğrulama ve Klasör Rozeti */
+.mg-suggest-item {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+.mg-suggest-icon {
+	display: inline-flex;
+	align-items: center;
+	color: var(--text-muted);
+}
+
+.mg-suggest-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+.mg-suggest-text {
+	word-break: break-all;
+}
+
+.mg-tracked-left {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2);
+	min-width: 0;
+}
+
+.mg-tracked-status-icon {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.mg-tracked-status-icon svg {
+	width: 15px;
+	height: 15px;
+}
+
+.mg-status-ok {
+	color: var(--text-success);
+}
+
+.mg-status-warn {
+	color: var(--text-warning);
+}
+
+.mg-tracked-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-1);
+	flex-shrink: 0;
+}
+
+.mg-folder-auto-badge {
+	margin-left: auto;
+	display: inline-flex;
+	align-items: center;
+	color: var(--text-muted);
+	opacity: 0.75;
+	flex-shrink: 0;
+}
+
+.mg-folder-auto-badge svg {
+	width: 13px;
+	height: 13px;
+}

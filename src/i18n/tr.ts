@@ -48,7 +48,14 @@ export const tr = {
 	settingTrackedPathsPlaceholder: 'Örn. Projeler/ veya Notlar/tez.md',
 	btnAddTrackedPath: 'Ekle',
 	btnRemoveTrackedPath: 'Kaldır',
+	btnTestTrackedPath: 'Test Et',
 	settingTrackedPathsEmpty: 'Henüz takip edilen dosya veya klasör eklenmedi.',
+	noticePathNotFound: 'Belirtilen dosya veya klasör kasada bulunamadı',
+	noticeTestSuccess: '"{path}" için otomatik yedekleme bağlantısı doğrulandı.',
+	noticeTestStorageError: 'Depolama erişimi doğrulanamadı.',
+	tooltipAutoBackupConnected: 'Otomatik yedekleme bağlı ve aktif',
+	tooltipPathNotFound: 'Klasör/dosya bulunamadı',
+	tooltipFolderAutoBackupActive: 'Otomatik yedekleme aktif',
 
 	// Status bar
 	statusAutoBackupOff: 'Oto-yedek kapalı',
@@ -88,6 +95,13 @@ export const tr = {
 		' silindi. Bu dosyaya ait {count} adet kayıtlı sürüm geçmişi de kalıcı olarak silinsin mi?',
 	btnKeepHistory: 'Geçmişi Koru',
 	btnDeleteHistory: 'Geçmişi de Sil',
+
+	// Delete Version Modal
+	modalDeleteVersionTitle: 'Sürümü Sil',
+	modalDeleteVersionMessage:
+		'"{label}" sürümü kalıcı olarak silinsin mi? Bu işlem geri alınamaz.',
+	btnDelete: 'Sil',
+	noticeVersionDeleted: '"{label}" sürümü silindi.',
 
 	// Timeline View
 	timelineDisplayText: 'Sürüm Geçmişi',

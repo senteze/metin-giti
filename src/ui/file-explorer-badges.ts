@@ -1,10 +1,12 @@
-import { App, TFile } from 'obsidian';
+import { App, TFile, setIcon } from 'obsidian';
 import { t } from '../i18n';
 import { VersionStore } from '../storage/version-store';
-import { VersionCountSummary } from '../types';
+import { TrackingMode, VersionCountSummary } from '../types';
+import { isFolderTracked } from '../utils/path';
 
 const BADGE_CLASS = 'mg-explorer-badge';
 const AUTO_ONLY_CLASS = 'mg-explorer-badge-auto-only';
+const FOLDER_BADGE_CLASS = 'mg-folder-auto-badge';
 const OBSERVER_DEBOUNCE_MS = 120;
 
 export class FileExplorerBadges {
@@ -13,6 +15,9 @@ export class FileExplorerBadges {
 	private readonly onBadgeClick: (file: TFile) => void;
 
 	private enabled: boolean;
+	private autoBackupEnabled: boolean;
+	private trackingMode: TrackingMode;
+	private trackedFiles: string[];
 	private observers: Map<HTMLElement, MutationObserver> = new Map();
 	private debounceTimer: number | null = null;
 
@@ -20,25 +25,37 @@ export class FileExplorerBadges {
 		app: App,
 		store: VersionStore,
 		enabled: boolean,
+		autoBackupEnabled: boolean,
+		trackingMode: TrackingMode,
+		trackedFiles: string[],
 		onBadgeClick: (file: TFile) => void,
 	) {
 		this.app = app;
 		this.store = store;
 		this.enabled = enabled;
+		this.autoBackupEnabled = autoBackupEnabled;
+		this.trackingMode = trackingMode;
+		this.trackedFiles = trackedFiles;
 		this.onBadgeClick = onBadgeClick;
 	}
 
 	start(): void {
-		if (!this.enabled) {
-			return;
-		}
 		this.attachObservers();
 		this.renderAllBadges();
 	}
 
-	configure(enabled: boolean): void {
+	configure(
+		enabled: boolean,
+		autoBackupEnabled: boolean,
+		trackingMode: TrackingMode,
+		trackedFiles: string[],
+	): void {
 		this.enabled = enabled;
-		if (!this.enabled) {
+		this.autoBackupEnabled = autoBackupEnabled;
+		this.trackingMode = trackingMode;
+		this.trackedFiles = trackedFiles;
+
+		if (!this.enabled && !this.autoBackupEnabled) {
 			this.clearDebounce();
 			this.disconnectObservers();
 			this.removeAllBadges();
@@ -49,7 +66,7 @@ export class FileExplorerBadges {
 	}
 
 	refresh(): void {
-		if (!this.enabled) {
+		if (!this.enabled && !this.autoBackupEnabled) {
 			return;
 		}
 		this.attachObservers();
@@ -78,7 +95,10 @@ export class FileExplorerBadges {
 				continue;
 			}
 			const observer = new MutationObserver((mutations) => {
-				if (!this.enabled || !this.hasRelevantMutation(mutations)) {
+				if (
+					(!this.enabled && !this.autoBackupEnabled) ||
+					!this.hasRelevantMutation(mutations)
+				) {
 					return;
 				}
 				this.scheduleRefresh();
@@ -96,7 +116,8 @@ export class FileExplorerBadges {
 			for (const node of Array.from(mutation.addedNodes)) {
 				if (
 					node instanceof HTMLElement &&
-					!node.hasClass(BADGE_CLASS)
+					!node.hasClass(BADGE_CLASS) &&
+					!node.hasClass(FOLDER_BADGE_CLASS)
 				) {
 					return true;
 				}
@@ -104,7 +125,8 @@ export class FileExplorerBadges {
 			for (const node of Array.from(mutation.removedNodes)) {
 				if (
 					node instanceof HTMLElement &&
-					!node.hasClass(BADGE_CLASS)
+					!node.hasClass(BADGE_CLASS) &&
+					!node.hasClass(FOLDER_BADGE_CLASS)
 				) {
 					return true;
 				}
@@ -117,9 +139,7 @@ export class FileExplorerBadges {
 		this.clearDebounce();
 		this.debounceTimer = window.setTimeout(() => {
 			this.debounceTimer = null;
-			if (this.enabled) {
-				this.renderAllBadges();
-			}
+			this.renderAllBadges();
 		}, OBSERVER_DEBOUNCE_MS);
 	}
 
@@ -154,7 +174,18 @@ export class FileExplorerBadges {
 				'.nav-file-title[data-path]',
 			);
 			for (const titleEl of Array.from(titleEls)) {
-				this.syncBadgeForElement(titleEl);
+				if (this.enabled) {
+					this.syncBadgeForElement(titleEl);
+				} else {
+					titleEl.querySelector(`.${BADGE_CLASS}`)?.remove();
+				}
+			}
+
+			const folderEls = container.querySelectorAll<HTMLElement>(
+				'.nav-folder-title[data-path]',
+			);
+			for (const folderEl of Array.from(folderEls)) {
+				this.syncFolderBadgeForElement(folderEl);
 			}
 		}
 	}
@@ -212,6 +243,40 @@ export class FileExplorerBadges {
 		});
 	}
 
+	private syncFolderBadgeForElement(folderEl: HTMLElement): void {
+		const folderPath = folderEl.getAttribute('data-path');
+		const existing = folderEl.querySelector<HTMLElement>(
+			`.${FOLDER_BADGE_CLASS}`,
+		);
+
+		const isCovered =
+			this.autoBackupEnabled &&
+			Boolean(folderPath) &&
+			folderPath !== '/' &&
+			!folderPath?.startsWith('.metin-giti') &&
+			(this.trackingMode === 'all' ||
+				isFolderTracked(folderPath ?? '', this.trackedFiles));
+
+		if (!isCovered) {
+			existing?.remove();
+			return;
+		}
+
+		const tooltip = t('tooltipFolderAutoBackupActive');
+		if (existing) {
+			if (existing.getAttribute('title') !== tooltip) {
+				existing.setAttribute('title', tooltip);
+				existing.setAttribute('aria-label', tooltip);
+			}
+			return;
+		}
+
+		const badgeEl = folderEl.createSpan({ cls: FOLDER_BADGE_CLASS });
+		setIcon(badgeEl, 'shield-check');
+		badgeEl.setAttribute('title', tooltip);
+		badgeEl.setAttribute('aria-label', tooltip);
+	}
+
 	private formatTooltip(summary: VersionCountSummary): string {
 		const parts: string[] = [];
 		if (summary.manualCount > 0) {
@@ -227,8 +292,14 @@ export class FileExplorerBadges {
 
 	private removeAllBadges(): void {
 		for (const container of this.getExplorerContainers()) {
-			const badges = container.querySelectorAll(`.${BADGE_CLASS}`);
-			for (const badge of Array.from(badges)) {
+			const fileBadges = container.querySelectorAll(`.${BADGE_CLASS}`);
+			for (const badge of Array.from(fileBadges)) {
+				badge.remove();
+			}
+			const folderBadges = container.querySelectorAll(
+				`.${FOLDER_BADGE_CLASS}`,
+			);
+			for (const badge of Array.from(folderBadges)) {
 				badge.remove();
 			}
 		}

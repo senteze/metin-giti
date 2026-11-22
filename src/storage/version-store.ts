@@ -37,6 +37,23 @@ export class VersionStore {
 	}
 
 	/**
+	 * Verifies that .metin-giti storage is writable without polluting any note's history.
+	 */
+	async verifyStorageAccess(): Promise<boolean> {
+		return this.enqueue(async () => {
+			try {
+				await this.ensureBaseStructure();
+				const probePath = normalizePath(`${ROOT_DIR}/.probe`);
+				await this.app.vault.adapter.write(probePath, 'ok');
+				await this.app.vault.adapter.remove(probePath);
+				return true;
+			} catch {
+				return false;
+			}
+		});
+	}
+
+	/**
 	 * Returns the cached manual/auto version counts for a file path without disk I/O.
 	 */
 	getCachedSummary(filePath: string): VersionCountSummary | null {
@@ -364,6 +381,54 @@ export class VersionStore {
 			}
 			const meta = await this.readDocMeta(docId, filePath);
 			return meta.versions.length;
+		});
+	}
+
+	/**
+	 * Deletes a single version from meta.json and removes its snapshot file
+	 * only if no remaining version shares the same content hash.
+	 */
+	async deleteVersion(
+		filePath: string,
+		versionId: string,
+	): Promise<boolean> {
+		return this.enqueue(async () => {
+			await this.ensureBaseStructure();
+			const index = await this.readIndex();
+			const docId = index[filePath];
+			if (!docId) {
+				return false;
+			}
+
+			const metaPath = this.getMetaPath(docId);
+			if (!(await this.app.vault.adapter.exists(metaPath))) {
+				return false;
+			}
+
+			const meta = await this.readDocMeta(docId, filePath);
+			const targetIndex = meta.versions.findIndex(
+				(v) => v.id === versionId,
+			);
+			if (targetIndex < 0) {
+				return false;
+			}
+
+			const removed = meta.versions[targetIndex];
+			meta.versions.splice(targetIndex, 1);
+			await this.writeDocMeta(docId, meta);
+
+			const hashStillUsed = removed
+				? meta.versions.some((v) => v.hash === removed.hash)
+				: false;
+			if (!hashStillUsed) {
+				const snapshotPath = this.getSnapshotPath(docId, versionId);
+				if (await this.app.vault.adapter.exists(snapshotPath)) {
+					await this.app.vault.adapter.remove(snapshotPath);
+				}
+			}
+
+			this.updateSummaryCache(filePath, meta);
+			return true;
 		});
 	}
 

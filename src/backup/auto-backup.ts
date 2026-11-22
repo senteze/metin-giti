@@ -1,10 +1,10 @@
-import { App, TAbstractFile, TFile } from 'obsidian';
+import { App, TAbstractFile, TFile, TFolder } from 'obsidian';
 import { t } from '../i18n';
 import { VersionStore } from '../storage/version-store';
 import { TrackingMode } from '../types';
 import { formatTimeShort } from '../utils/date';
 import { computeContentHash } from '../utils/hash';
-import { matchesTrackedPath } from '../utils/path';
+import { matchesTrackedPath, resolveVaultItem } from '../utils/path';
 
 const RESTORE_SUPPRESS_TTL_MS = 3500;
 
@@ -67,6 +67,40 @@ export class AutoBackupManager {
 		}
 
 		this.renderInitialStatus();
+	}
+
+	/**
+	 * Tests whether a tracked file/folder exists in the vault, matches rules,
+	 * and has writable .metin-giti storage without creating any backup entry.
+	 */
+	async testTrackedEntry(
+		entry: string,
+	): Promise<{ ok: boolean; reason?: 'missing' | 'storage' }> {
+		const resolved = resolveVaultItem(this.app, entry);
+		if (!resolved) {
+			return { ok: false, reason: 'missing' };
+		}
+		if (
+			resolved instanceof TFile &&
+			resolved.extension.toLowerCase() !== 'md'
+		) {
+			return { ok: false, reason: 'missing' };
+		}
+
+		const samplePath =
+			resolved instanceof TFolder
+				? `${resolved.path}/__probe__.md`
+				: resolved.path;
+		if (!matchesTrackedPath(samplePath, [entry])) {
+			return { ok: false, reason: 'missing' };
+		}
+
+		const storageOk = await this.store.verifyStorageAccess();
+		if (!storageOk) {
+			return { ok: false, reason: 'storage' };
+		}
+
+		return { ok: true };
 	}
 
 	/**

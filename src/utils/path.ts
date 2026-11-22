@@ -1,4 +1,4 @@
-import { normalizePath } from 'obsidian';
+import { App, TAbstractFile, normalizePath } from 'obsidian';
 
 /**
  * Normalizes a user-entered file or folder path for tracked-path storage.
@@ -15,6 +15,22 @@ export function normalizeTrackedEntry(raw: string): string {
 		return `${normalized}/`;
 	}
 	return normalized;
+}
+
+/**
+ * Resolves a tracked entry (file or folder, with or without trailing slash) against the vault.
+ */
+export function resolveVaultItem(
+	app: App,
+	entry: string,
+): TAbstractFile | null {
+	const normalized = normalizeTrackedEntry(entry);
+	if (!normalized) {
+		return null;
+	}
+	const lookupPath =
+		normalized === '/' ? '/' : normalized.replace(/\/+$/, '');
+	return app.vault.getAbstractFileByPath(lookupPath);
 }
 
 /**
@@ -39,6 +55,37 @@ export function matchesTrackedPath(
 		const folderPrefix =
 			entry === '/' ? '' : `${entry.replace(/\/+$/, '')}/`;
 		if (folderPrefix === '' || normalizedFile.startsWith(folderPrefix)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Returns true if a vault folder is covered by any tracked folder entry.
+ */
+export function isFolderTracked(
+	folderPath: string,
+	trackedEntries: Iterable<string>,
+): boolean {
+	const normalizedFolder = normalizePath(folderPath).replace(/\/+$/, '');
+	if (!normalizedFolder || normalizedFolder === '/') {
+		return false;
+	}
+
+	for (const rawEntry of trackedEntries) {
+		const entry = normalizeTrackedEntry(rawEntry);
+		if (!entry || entry.toLowerCase().endsWith('.md')) {
+			continue;
+		}
+		if (entry === '/') {
+			return true;
+		}
+		const cleanEntry = entry.replace(/\/+$/, '');
+		if (
+			normalizedFolder === cleanEntry ||
+			normalizedFolder.startsWith(`${cleanEntry}/`)
+		) {
 			return true;
 		}
 	}

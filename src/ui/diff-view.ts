@@ -117,6 +117,28 @@ export class DiffView extends ItemView {
 		}
 
 		const versions = history?.versions ?? [];
+
+		if (
+			this.target.leftId !== CURRENT_SIDE_ID &&
+			!versions.some((v) => v.id === this.target?.leftId)
+		) {
+			this.target.leftId = CURRENT_SIDE_ID;
+		}
+		if (
+			this.target.rightId !== CURRENT_SIDE_ID &&
+			!versions.some((v) => v.id === this.target?.rightId)
+		) {
+			const fallback = versions[0]?.id;
+			if (!fallback) {
+				const emptyEl = contentEl.createDiv({ cls: 'mg-diff-empty' });
+				emptyEl.createEl('p', {
+					text: t('timelineEmptyNoVersions'),
+				});
+				return;
+			}
+			this.target.rightId = fallback;
+		}
+
 		const leftResolved = await this.resolveSide(
 			currentFile,
 			this.target.leftId,

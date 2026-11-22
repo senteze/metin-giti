@@ -50,7 +50,14 @@ export const en: Record<TranslationKey, string> = {
 	settingTrackedPathsPlaceholder: 'e.g. Projects/ or Notes/thesis.md',
 	btnAddTrackedPath: 'Add',
 	btnRemoveTrackedPath: 'Remove',
+	btnTestTrackedPath: 'Test',
 	settingTrackedPathsEmpty: 'No tracked files or folders added yet.',
+	noticePathNotFound: 'The specified file or folder was not found in the vault',
+	noticeTestSuccess: 'Auto-backup connection verified for "{path}".',
+	noticeTestStorageError: 'Could not verify storage access.',
+	tooltipAutoBackupConnected: 'Auto-backup connected and active',
+	tooltipPathNotFound: 'Folder/file not found',
+	tooltipFolderAutoBackupActive: 'Auto-backup active',
 
 	// Status bar
 	statusAutoBackupOff: 'Auto-backup off',
@@ -88,6 +95,13 @@ export const en: Record<TranslationKey, string> = {
 		' was deleted. Permanently delete its {count} saved version(s) as well?',
 	btnKeepHistory: 'Keep History',
 	btnDeleteHistory: 'Delete History',
+
+	// Delete Version Modal
+	modalDeleteVersionTitle: 'Delete Version',
+	modalDeleteVersionMessage:
+		'Permanently delete version "{label}"? This action cannot be undone.',
+	btnDelete: 'Delete',
+	noticeVersionDeleted: 'Version "{label}" deleted.',
 
 	// Timeline View
 	timelineDisplayText: 'Version History',

@@ -5,6 +5,7 @@ import { VersionMeta } from '../types';
 import { formatDateTimeLabel } from '../utils/date';
 import { computeContentHash } from '../utils/hash';
 import { CURRENT_SIDE_ID } from './diff-view';
+import { DeleteVersionModal } from './delete-version-modal';
 import { RestoreConfirmModal } from './restore-confirm-modal';
 
 export const TIMELINE_VIEW_TYPE = 'metin-giti-timeline';
@@ -19,6 +20,7 @@ export interface TimelineViewCallbacks {
 	) => Promise<void>;
 	onBeforeRestore: (file: TFile, restoredHash: string) => void;
 	onVersionRestored: () => void;
+	onVersionDeleted: () => void;
 }
 
 type TimelineSegment =
@@ -480,6 +482,33 @@ export class TimelineView extends ItemView {
 		exportBtn.addEventListener('click', () => {
 			void this.exportVersion(file, version);
 		});
+
+		const deleteBtn = actionsEl.createEl('button', {
+			text: t('btnDelete'),
+			cls: 'mg-btn-action mg-btn-delete-version',
+		});
+		deleteBtn.type = 'button';
+		deleteBtn.addEventListener('click', () => {
+			this.promptDeleteVersion(file, version);
+		});
+	}
+
+	private promptDeleteVersion(file: TFile, version: VersionMeta): void {
+		new DeleteVersionModal(this.app, version.label, async () => {
+			const deleted = await this.store.deleteVersion(
+				file.path,
+				version.id,
+			);
+			if (!deleted) {
+				return;
+			}
+			this.selectedCompareIds = this.selectedCompareIds.filter(
+				(id) => id !== version.id,
+			);
+			new Notice(t('noticeVersionDeleted', { label: version.label }));
+			await this.refresh();
+			this.callbacks.onVersionDeleted();
+		}).open();
 	}
 
 	private promptRestore(file: TFile, version: VersionMeta): void {

@@ -1,4 +1,13 @@
-import { App, PluginSettingTab, Setting, TextComponent } from 'obsidian';
+import {
+	App,
+	Notice,
+	PluginSettingTab,
+	Setting,
+	TFile,
+	TFolder,
+	TextComponent,
+	setIcon,
+} from 'obsidian';
 import { LanguagePreference, t } from './i18n';
 import type MetinGitiPlugin from './main';
 import {
@@ -6,7 +15,8 @@ import {
 	MetinGitiSettings,
 	TrackingMode,
 } from './types';
-import { normalizeTrackedEntry } from './utils/path';
+import { VaultPathSuggest } from './ui/path-suggest';
+import { normalizeTrackedEntry, resolveVaultItem } from './utils/path';
 
 export const DEFAULT_SETTINGS: MetinGitiSettings = {
 	language: 'auto',
@@ -140,16 +150,35 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 			if (!normalized) {
 				return;
 			}
-			if (!this.plugin.settings.trackedFiles.includes(normalized)) {
-				this.plugin.settings.trackedFiles.push(normalized);
-				if (normalized.toLowerCase().endsWith('.md')) {
+
+			const resolved = resolveVaultItem(this.app, normalized);
+			if (
+				!resolved ||
+				(resolved instanceof TFile &&
+					resolved.extension.toLowerCase() !== 'md')
+			) {
+				new Notice(t('noticePathNotFound'));
+				return;
+			}
+
+			const canonicalEntry =
+				resolved instanceof TFolder &&
+				!normalized.endsWith('/') &&
+				normalized !== '/'
+					? `${normalized}/`
+					: normalized;
+
+			if (!this.plugin.settings.trackedFiles.includes(canonicalEntry)) {
+				this.plugin.settings.trackedFiles.push(canonicalEntry);
+				if (resolved instanceof TFile) {
 					await this.plugin.setPathAutoBackupTracked(
-						normalized,
+						resolved.path,
 						true,
 					);
 				}
 				await this.plugin.saveSettings();
 			}
+
 			pendingPath = '';
 			pathInput?.setValue('');
 			this.display();
@@ -164,6 +193,9 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 					t('settingTrackedPathsPlaceholder'),
 				).onChange((value) => {
 					pendingPath = value;
+				});
+				new VaultPathSuggest(this.app, text.inputEl, (selected) => {
+					pendingPath = selected;
 				});
 			})
 			.addButton((btn) =>
@@ -186,9 +218,42 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 
 		for (const entry of this.plugin.settings.trackedFiles) {
 			const itemEl = listEl.createDiv({ cls: 'mg-tracked-item' });
-			itemEl.createSpan({ text: entry, cls: 'mg-tracked-path' });
+			const leftEl = itemEl.createDiv({ cls: 'mg-tracked-left' });
 
-			const removeBtn = itemEl.createEl('button', {
+			const resolved = resolveVaultItem(this.app, entry);
+			const isValid =
+				resolved !== null &&
+				!(
+					resolved instanceof TFile &&
+					resolved.extension.toLowerCase() !== 'md'
+				);
+
+			const statusEl = leftEl.createSpan({
+				cls: isValid
+					? 'mg-tracked-status-icon mg-status-ok'
+					: 'mg-tracked-status-icon mg-status-warn',
+			});
+			setIcon(statusEl, isValid ? 'check-circle' : 'alert-circle');
+			const statusTooltip = isValid
+				? t('tooltipAutoBackupConnected')
+				: t('tooltipPathNotFound');
+			statusEl.setAttribute('title', statusTooltip);
+			statusEl.setAttribute('aria-label', statusTooltip);
+
+			leftEl.createSpan({ text: entry, cls: 'mg-tracked-path' });
+
+			const actionsEl = itemEl.createDiv({ cls: 'mg-tracked-actions' });
+
+			const testBtn = actionsEl.createEl('button', {
+				text: t('btnTestTrackedPath'),
+				cls: 'mg-btn-action',
+			});
+			testBtn.type = 'button';
+			testBtn.addEventListener('click', () => {
+				void this.testTrackedPath(entry);
+			});
+
+			const removeBtn = actionsEl.createEl('button', {
 				text: t('btnRemoveTrackedPath'),
 				cls: 'mg-btn-action',
 			});
@@ -197,6 +262,18 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 				void this.removeTrackedPath(entry);
 			});
 		}
+	}
+
+	private async testTrackedPath(entry: string): Promise<void> {
+		const result = await this.plugin.testTrackedPath(entry);
+		if (result.ok) {
+			new Notice(t('noticeTestSuccess', { path: entry }));
+		} else if (result.reason === 'storage') {
+			new Notice(t('noticeTestStorageError'));
+		} else {
+			new Notice(t('noticePathNotFound'));
+		}
+		this.display();
 	}
 
 	private async removeTrackedPath(entry: string): Promise<void> {

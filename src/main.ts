@@ -47,6 +47,9 @@ export default class MetinGitiPlugin extends Plugin {
 			this.app,
 			this.versionStore,
 			this.settings.showExplorerBadges,
+			this.settings.autoBackupEnabled,
+			this.settings.trackingMode,
+			this.settings.trackedFiles,
 			(file) => {
 				void this.openFileAndTimeline(file);
 			},
@@ -69,6 +72,11 @@ export default class MetinGitiPlugin extends Plugin {
 					onVersionRestored: () => {
 						this.autoBackup.recordBackupTime(new Date());
 						void this.refreshTimelineViews();
+						void this.refreshDiffViews();
+					},
+					onVersionDeleted: () => {
+						this.autoBackup.refreshStatusText();
+						this.explorerBadges.refresh();
 						void this.refreshDiffViews();
 					},
 				}),
@@ -205,7 +213,12 @@ export default class MetinGitiPlugin extends Plugin {
 			this.settings.trackedFiles,
 		);
 		this.autoBackup?.refreshStatusText();
-		this.explorerBadges?.configure(this.settings.showExplorerBadges);
+		this.explorerBadges?.configure(
+			this.settings.showExplorerBadges,
+			this.settings.autoBackupEnabled,
+			this.settings.trackingMode,
+			this.settings.trackedFiles,
+		);
 		this.explorerBadges?.refresh();
 		void this.refreshTimelineViews();
 		void this.refreshDiffViews();
@@ -358,6 +371,12 @@ export default class MetinGitiPlugin extends Plugin {
 		tracked: boolean,
 	): Promise<void> {
 		await this.versionStore.setFileAutoBackupTracked(filePath, tracked);
+	}
+
+	async testTrackedPath(
+		entry: string,
+	): Promise<{ ok: boolean; reason?: 'missing' | 'storage' }> {
+		return this.autoBackup.testTrackedEntry(entry);
 	}
 
 	private async toggleFileTracking(file: TFile): Promise<void> {
