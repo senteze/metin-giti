@@ -636,9 +636,15 @@
 	transition: background-color 120ms ease, color 120ms ease;
 }
 
-.mg-explorer-badge:hover {
+.mg-explorer-badge:hover,
+.mg-explorer-badge-active {
 	background-color: var(--interactive-accent);
 	color: var(--text-on-accent);
+}
+
+.mg-explorer-badge-active {
+	opacity: 1;
+	box-shadow: 0 0 0 1px var(--interactive-accent-hover);
 }
 
 .mg-explorer-badge-auto-only {

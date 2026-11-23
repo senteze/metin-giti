@@ -3,8 +3,10 @@ import { t } from '../i18n';
 import { VersionStore } from '../storage/version-store';
 import { TrackingMode, VersionCountSummary } from '../types';
 import { isFolderTracked } from '../utils/path';
+import { TIMELINE_VIEW_TYPE } from './timeline-view';
 
 const BADGE_CLASS = 'mg-explorer-badge';
+const ACTIVE_BADGE_CLASS = 'mg-explorer-badge-active';
 const AUTO_ONLY_CLASS = 'mg-explorer-badge-auto-only';
 const FOLDER_BADGE_CLASS = 'mg-folder-auto-badge';
 const OBSERVER_DEBOUNCE_MS = 120;
@@ -115,7 +117,7 @@ export class FileExplorerBadges {
 		for (const mutation of mutations) {
 			for (const node of Array.from(mutation.addedNodes)) {
 				if (
-					node instanceof HTMLElement &&
+					node.instanceOf(HTMLElement) &&
 					!node.hasClass(BADGE_CLASS) &&
 					!node.hasClass(FOLDER_BADGE_CLASS)
 				) {
@@ -124,7 +126,7 @@ export class FileExplorerBadges {
 			}
 			for (const node of Array.from(mutation.removedNodes)) {
 				if (
-					node instanceof HTMLElement &&
+					node.instanceOf(HTMLElement) &&
 					!node.hasClass(BADGE_CLASS) &&
 					!node.hasClass(FOLDER_BADGE_CLASS)
 				) {
@@ -168,14 +170,31 @@ export class FileExplorerBadges {
 		return containers;
 	}
 
+	private getActiveTimelineFilePath(): string | null {
+		const timelineLeaves =
+			this.app.workspace.getLeavesOfType(TIMELINE_VIEW_TYPE);
+		if (timelineLeaves.length === 0) {
+			return null;
+		}
+		const activeFile = this.app.workspace.getActiveFile();
+		if (
+			activeFile instanceof TFile &&
+			activeFile.extension.toLowerCase() === 'md'
+		) {
+			return activeFile.path;
+		}
+		return null;
+	}
+
 	private renderAllBadges(): void {
+		const activeTimelinePath = this.getActiveTimelineFilePath();
 		for (const container of this.getExplorerContainers()) {
 			const titleEls = container.querySelectorAll<HTMLElement>(
 				'.nav-file-title[data-path]',
 			);
 			for (const titleEl of Array.from(titleEls)) {
 				if (this.enabled) {
-					this.syncBadgeForElement(titleEl);
+					this.syncBadgeForElement(titleEl, activeTimelinePath);
 				} else {
 					titleEl.querySelector(`.${BADGE_CLASS}`)?.remove();
 				}
@@ -190,7 +209,10 @@ export class FileExplorerBadges {
 		}
 	}
 
-	private syncBadgeForElement(titleEl: HTMLElement): void {
+	private syncBadgeForElement(
+		titleEl: HTMLElement,
+		activeTimelinePath: string | null,
+	): void {
 		const filePath = titleEl.getAttribute('data-path');
 		const existing = titleEl.querySelector<HTMLElement>(`.${BADGE_CLASS}`);
 
@@ -208,6 +230,8 @@ export class FileExplorerBadges {
 		const badgeText =
 			summary.manualCount > 0 ? String(summary.manualCount) : '•';
 		const isAutoOnly = summary.manualCount === 0;
+		const isActive =
+			activeTimelinePath !== null && filePath === activeTimelinePath;
 		const tooltip = this.formatTooltip(summary);
 
 		if (existing) {
@@ -215,6 +239,7 @@ export class FileExplorerBadges {
 				existing.setText(badgeText);
 			}
 			existing.toggleClass(AUTO_ONLY_CLASS, isAutoOnly);
+			existing.toggleClass(ACTIVE_BADGE_CLASS, isActive);
 			if (existing.getAttribute('title') !== tooltip) {
 				existing.setAttribute('title', tooltip);
 				existing.setAttribute('aria-label', tooltip);
@@ -226,6 +251,7 @@ export class FileExplorerBadges {
 			cls: isAutoOnly ? `${BADGE_CLASS} ${AUTO_ONLY_CLASS}` : BADGE_CLASS,
 			text: badgeText,
 		});
+		badgeEl.toggleClass(ACTIVE_BADGE_CLASS, isActive);
 		badgeEl.setAttribute('title', tooltip);
 		badgeEl.setAttribute('aria-label', tooltip);
 		badgeEl.addEventListener('click', (evt) => {

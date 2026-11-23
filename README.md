@@ -57,4 +57,4 @@ npm run build
 
 ## License
 
-[MIT](LICENSE)
+This plugin is licensed under the [0-BSD](LICENSE) license.

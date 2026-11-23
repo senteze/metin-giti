@@ -51,7 +51,7 @@ export default class MetinGitiPlugin extends Plugin {
 			this.settings.trackingMode,
 			this.settings.trackedFiles,
 			(file) => {
-				void this.openFileAndTimeline(file);
+				void this.handleExplorerBadgeClick(file);
 			},
 		);
 
@@ -155,7 +155,13 @@ export default class MetinGitiPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', () => {
-				void this.refreshTimelineViews();
+				void this.syncTimelineAndBadges();
+			}),
+		);
+
+		this.registerEvent(
+			this.app.workspace.on('file-open', () => {
+				void this.syncTimelineAndBadges();
 			}),
 		);
 
@@ -222,6 +228,30 @@ export default class MetinGitiPlugin extends Plugin {
 		this.explorerBadges?.refresh();
 		void this.refreshTimelineViews();
 		void this.refreshDiffViews();
+	}
+
+	private async handleExplorerBadgeClick(file: TFile): Promise<void> {
+		const timelineLeaves =
+			this.app.workspace.getLeavesOfType(TIMELINE_VIEW_TYPE);
+		const activeFile = this.app.workspace.getActiveFile();
+		const isSameFileOpenInTimeline =
+			timelineLeaves.length > 0 &&
+			activeFile instanceof TFile &&
+			activeFile.path === file.path;
+
+		if (isSameFileOpenInTimeline) {
+			this.app.workspace.detachLeavesOfType(TIMELINE_VIEW_TYPE);
+			this.explorerBadges.refresh();
+			return;
+		}
+
+		await this.openFileAndTimeline(file);
+		this.explorerBadges.refresh();
+	}
+
+	private async syncTimelineAndBadges(): Promise<void> {
+		await this.refreshTimelineViews();
+		this.explorerBadges.refresh();
 	}
 
 	private async openFileAndTimeline(file: TFile): Promise<void> {

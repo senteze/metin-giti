@@ -3,6 +3,7 @@ import {
 	Notice,
 	PluginSettingTab,
 	Setting,
+	SettingDefinitionItem,
 	TFile,
 	TFolder,
 	TextComponent,
@@ -36,7 +37,159 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	getSettingDefinitions(): SettingDefinitionItem<
+		keyof MetinGitiSettings
+	>[] {
+		return [
+			{
+				name: t('settingLanguageName'),
+				desc: t('settingLanguageDesc'),
+				control: {
+					type: 'dropdown',
+					key: 'language',
+					options: {
+						auto: t('settingLanguageAuto'),
+						tr: t('settingLanguageTr'),
+						en: t('settingLanguageEn'),
+					},
+				},
+			},
+			{
+				name: t('settingAutoBackupName'),
+				desc: t('settingAutoBackupDesc'),
+				control: {
+					type: 'toggle',
+					key: 'autoBackupEnabled',
+				},
+			},
+			{
+				name: t('settingIntervalName'),
+				desc: t('settingIntervalDesc'),
+				visible: () => this.plugin.settings.autoBackupEnabled,
+				control: {
+					type: 'number',
+					key: 'autoBackupIntervalMinutes',
+					placeholder: '2',
+					min: 1,
+					step: 1,
+				},
+			},
+			{
+				name: t('settingTrackingModeName'),
+				desc: t('settingTrackingModeDesc'),
+				visible: () => this.plugin.settings.autoBackupEnabled,
+				control: {
+					type: 'dropdown',
+					key: 'trackingMode',
+					options: {
+						all: t('settingTrackingAll'),
+						'tracked-only': t('settingTrackingOnly'),
+					},
+				},
+			},
+			{
+				name: t('settingTrackedPathsName'),
+				desc: t('settingTrackedPathsDesc'),
+				visible: () =>
+					this.plugin.settings.autoBackupEnabled &&
+					this.plugin.settings.trackingMode === 'tracked-only',
+				render: (setting) => {
+					this.configureTrackedPathsSetting(setting);
+					const parentEl = setting.settingEl.parentElement;
+					if (!parentEl) {
+						return;
+					}
+					const listEl = this.renderTrackedPathsList(parentEl);
+					return () => {
+						listEl.remove();
+					};
+				},
+			},
+			{
+				name: t('settingNamingFormatName'),
+				desc: t('settingNamingFormatDesc'),
+				control: {
+					type: 'dropdown',
+					key: 'namingFormat',
+					options: {
+						date: t('namingOptionDate'),
+						sequence: t('namingOptionSequence'),
+					},
+				},
+			},
+			{
+				name: t('settingExplorerBadgesName'),
+				desc: t('settingExplorerBadgesDesc'),
+				control: {
+					type: 'toggle',
+					key: 'showExplorerBadges',
+				},
+			},
+		];
+	}
+
+	override getControlValue(key: keyof MetinGitiSettings): unknown {
+		return this.plugin.settings[key];
+	}
+
+	override async setControlValue(
+		key: keyof MetinGitiSettings,
+		value: unknown,
+	): Promise<void> {
+		switch (key) {
+			case 'language':
+				this.plugin.settings.language = value as LanguagePreference;
+				await this.plugin.saveSettings();
+				this.refreshUI();
+				break;
+			case 'autoBackupEnabled':
+				this.plugin.settings.autoBackupEnabled = Boolean(value);
+				await this.plugin.saveSettings();
+				this.refreshUI();
+				break;
+			case 'autoBackupIntervalMinutes': {
+				const parsed =
+					typeof value === 'number'
+						? Math.floor(value)
+						: Number.parseInt(String(value), 10);
+				if (!Number.isNaN(parsed) && parsed >= 1) {
+					this.plugin.settings.autoBackupIntervalMinutes = parsed;
+					await this.plugin.saveSettings();
+				}
+				break;
+			}
+			case 'trackingMode':
+				this.plugin.settings.trackingMode = value as TrackingMode;
+				await this.plugin.saveSettings();
+				this.refreshUI();
+				break;
+			case 'namingFormat':
+				this.plugin.settings.namingFormat = value as FileNamingMode;
+				await this.plugin.saveSettings();
+				break;
+			case 'showExplorerBadges':
+				this.plugin.settings.showExplorerBadges = Boolean(value);
+				await this.plugin.saveSettings();
+				break;
+			default:
+				break;
+		}
+	}
+
+	private refreshUI(): void {
+		const updateFn: unknown = Reflect.get(this, 'update');
+		if (typeof updateFn === 'function') {
+			(updateFn as () => void).call(this);
+		} else {
+			this.renderLegacySettings();
+		}
+	}
+
 	display(): void {
+		this.renderLegacySettings();
+	}
+
+	private renderLegacySettings(): void {
 		const { containerEl } = this;
 		containerEl.empty();
 
@@ -53,7 +206,7 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 						this.plugin.settings.language =
 							value as LanguagePreference;
 						await this.plugin.saveSettings();
-						this.display();
+						this.renderLegacySettings();
 					}),
 			);
 
@@ -66,7 +219,7 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.autoBackupEnabled = value;
 						await this.plugin.saveSettings();
-						this.display();
+						this.renderLegacySettings();
 					}),
 			);
 
@@ -104,7 +257,7 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 							this.plugin.settings.trackingMode =
 								value as TrackingMode;
 							await this.plugin.saveSettings();
-							this.display();
+							this.renderLegacySettings();
 						}),
 				);
 
@@ -142,6 +295,14 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 	}
 
 	private renderTrackedPathsSection(containerEl: HTMLElement): void {
+		const setting = new Setting(containerEl)
+			.setName(t('settingTrackedPathsName'))
+			.setDesc(t('settingTrackedPathsDesc'));
+		this.configureTrackedPathsSetting(setting);
+		this.renderTrackedPathsList(containerEl);
+	}
+
+	private configureTrackedPathsSetting(setting: Setting): void {
 		let pathInput: TextComponent | null = null;
 		let pendingPath = '';
 
@@ -181,12 +342,10 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 
 			pendingPath = '';
 			pathInput?.setValue('');
-			this.display();
+			this.refreshUI();
 		};
 
-		new Setting(containerEl)
-			.setName(t('settingTrackedPathsName'))
-			.setDesc(t('settingTrackedPathsDesc'))
+		setting
 			.addText((text) => {
 				pathInput = text;
 				text.setPlaceholder(
@@ -206,14 +365,16 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 						void addEntry();
 					}),
 			);
+	}
 
+	private renderTrackedPathsList(containerEl: HTMLElement): HTMLElement {
 		const listEl = containerEl.createDiv({ cls: 'mg-tracked-list' });
 		if (this.plugin.settings.trackedFiles.length === 0) {
 			listEl.createDiv({
 				text: t('settingTrackedPathsEmpty'),
 				cls: 'mg-tracked-empty',
 			});
-			return;
+			return listEl;
 		}
 
 		for (const entry of this.plugin.settings.trackedFiles) {
@@ -262,6 +423,8 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 				void this.removeTrackedPath(entry);
 			});
 		}
+
+		return listEl;
 	}
 
 	private async testTrackedPath(entry: string): Promise<void> {
@@ -273,7 +436,7 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 		} else {
 			new Notice(t('noticePathNotFound'));
 		}
-		this.display();
+		this.refreshUI();
 	}
 
 	private async removeTrackedPath(entry: string): Promise<void> {
@@ -283,6 +446,6 @@ export class MetinGitiSettingTab extends PluginSettingTab {
 			await this.plugin.setPathAutoBackupTracked(entry, false);
 		}
 		await this.plugin.saveSettings();
-		this.display();
+		this.refreshUI();
 	}
 }

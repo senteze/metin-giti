@@ -57,4 +57,4 @@ npm run build
 
 ## Lisans
 
-[MIT](LICENSE)
+Bu eklenti [0-BSD](LICENSE) lisansı ile lisanslanmıştır.
