@@ -1,59 +1,78 @@
-[English](README.md) | **Türkçe**
+[English](https://github.com/senteze/metin-giti/blob/main/README.md) | **Türkçe**
 
 # Metin Giti
 
-**Metin Giti**, Obsidian içinde tekil Markdown (`.md`) notları için geliştirilmiş; `commit`, `branch`, `merge` gibi teknik Git karmaşası olmadan çalışan, tamamen insan odaklı doğrusal sürüm geçmişi eklentisidir.
+**Metin Giti**, Obsidian içindeki tekil Markdown (`.md`) notları için geliştirilmiş; `commit`, `branch`, `merge` gibi teknik Git karmaşası olmadan çalışan, tamamen insan odaklı doğrusal sürüm geçmişi eklentisidir.
 
 ## Temel Özellikler
 
 - **Hızlı ve Manuel Sürüm Kaydetme**
-  - Sol şerit (ribbon) ve komut paleti üzerinden pencere açmadan tek tıkla **Hızlı Sürüm Kaydet** veya özel ad ve açıklamayla **Sürüm Kaydet**.
-  - Dosya bazlı otomatik isimlendirme tercihi: sıralı numara (`v1, v2, v3...`) veya tarih ve saat (`GG.AA.YYYY SS:DD`).
+  - Sol şerit (ribbon) veya komut paleti üzerinden pencere açmadan tek tıkla **Hızlı Sürüm Kaydet** ile yedek alın ya da özel isim ve açıklamayla **Sürüm Kaydet** kullanın.
+  - Not bazında otomatik isimlendirme tercihi seçin: sıralı numara (`v1, v2, v3...`) veya tarih ve saat (`GG.AA.YYYY SS:DD`).
 
 - **Akıllı Otomatik Yedekleme ve Taşınmaya Dayanıklı Takip**
-  - Ayarlanabilir bekleme süresiyle (dakika cinsinden debounce) arka planda sessiz yedekleme ve durum çubuğu göstergesi.
-  - Geri yükleme koruması sayesinde eski bir sürüme dönüldüğünde gereksiz otomatik yedek tetiklenmez.
-  - SHA-256 içerik özetiyle birebir aynı içerikler tekrar kaydedilmez; dosya başına en fazla son 30 otomatik yedek tutulur, manuel kayıtlar asla otomatik silinmez.
-  - **Tüm dosyalar** veya **Sadece takip edilen dosyalar** modu; otomatik tamamlamalı (`AbstractInputSuggest`) yol seçici, kasa varlık doğrulaması, yeşil bağlantı durumu ikonu, geçmişi kirletmeyen **Test Et** butonu ve dosya taşınsa bile takibi koruyan `autoBackupTracked` üst verisi.
+  - Ayarlanabilir bekleme süresiyle arka planda sessizce çalışır ve durum çubuğunda bilgi gösterir.
+  - Birebir aynı içerikleri tekrar kaydetmez; not başına en fazla 30 otomatik yedek saklar ve manuel kayıtlarınızı asla otomatik silmez.
+  - Eski bir sürüme döndüğünüzde gereksiz otomatik yedek oluşmasını engeller.
+  - **Tüm dosyalar** veya **Sadece takip edilen dosyalar** modunda kolay yol önerileri, durum göstergeleri ve **Test Et** butonu sunar; notlarınızı taşısanız veya yeniden adlandırsanız bile takibi korur.
 
-- **Doğrusal Zaman Çizelgesi Paneli (`metin-giti-timeline`)**
-  - Manuel kayıtları en yeni en üstte olacak şekilde sürüm adı, tarih-saat ve açıklamasıyla listeler.
+- **Doğrusal Zaman Çizelgesi Paneli**
+  - Kaydedilen tüm sürümleri en yeni en üstte olacak şekilde sürüm adı, tarih-saat ve açıklamasıyla listeler.
   - Aradaki otomatik yedekleri katlanabilir gruplar halinde toplayarak görsel kalabalığı önler.
-  - **Eski Haline Dön** (mevcut içerik geçmişte yoksa önce güvenlik yedeği alır), **Dışa Aktar** (aynı klasöre çakışmasız `.md` kopyası oluşturur) ve **Sil** (onay penceresi ve SHA-256 güvenli snapshot temizliğiyle tekil sürüm silme) aksiyonları sunar.
+  - **Eski Haline Dön** (mevcut notunuzda kaydedilmemiş değişiklik varsa önce güvenlik yedeği alır), **Dışa Aktar** (aynı klasöre ayrı bir `.md` kopyası oluşturur) ve **Sil** (onay penceresiyle) seçenekleri sunar.
 
-- **2 Sütunlu Yan Yana Bölüm Farkı ve Parçalı Geri Kazanım (`metin-giti-diff`)**
-  - Notları Markdown başlıklarına (`#`–`####`) göre bölümlere ayırır; herhangi iki sürümü veya bir sürümü **Güncel Hal** ile **Yan Yana** (varsayılan) ya da **Tek Sütun** görünümünde karşılaştırır.
-  - Kelime bazlı vurgulama (`diffWords`), değişmeyen bölümleri gizleme filtresi, **Yer Değiştir** butonlu sol/sağ seçiciler ve zaman çizelgesinden **2 Sürüm Karşılaştır** seçimi içerir.
-  - **Parçayı Kopyala** ve **Güncel Dosyaya Al** butonlarıyla eski sürümlerdeki bölümleri tek tıkla geri kazandırır.
+- **Yan Yana Karşılaştırma ve Parçalı Geri Kazanım**
+  - Herhangi iki sürümü veya eski bir sürümü **Güncel Hal** ile başlık başlık **Yan Yana** ya da **Tek Sütun** görünümünde karşılaştırır.
+  - Kelime bazlı değişiklikleri vurgular, değişmeyen bölümleri gizlemenize, tarafları tek tıkla değiştirmenize ve zaman çizelgesinden doğrudan 2 sürüm seçmenize olanak tanır.
+  - **Parçayı Kopyala** ve **Güncel Dosyaya Al** butonlarıyla sadece istediğiniz bölümleri geri kazanın.
 
-- **Sol Dosya Gezgini Rozetleri ve Güvenli Silme**
-  - Sol dosya gezgininde sürüm geçmişi bulunan `.md` notlarının yanında canlı sürüm sayısı rozeti (tıklandığında notun zaman çizelgesini açar) ve otomatik yedekleme kapsamındaki klasörlerde koruma ikonu gösterir.
-  - Geçmişi olan bir not silindiğinde **Geçmişi Koru** veya **Geçmişi de Sil** onay penceresi sunar.
+- **Dosya Gezgini Rozetleri ve Güvenli Silme**
+  - Dosya gezgininde sürüm geçmişi bulunan `.md` notlarının yanında canlı sürüm sayısı rozeti (tıklandığında notun zaman çizelgesini açar) ve korunan klasörlerde kalkan ikonu gösterir.
+  - Geçmişi olan bir notu sildiğinizde **Geçmişi Koru** veya **Geçmişi de Sil** seçeneği sunar.
 
 - **Çift Dilli Arayüz (TR / EN) ve Temiz Depolama**
-  - Obsidian diline (`moment.locale()`) otomatik uyum sağlar veya **Ayarlar → Metin Giti** üzerinden (`Otomatik`, `Türkçe`, `English`) seçilebilir.
-  - Notların YAML frontmatter alanına dokunmaz. Tüm verileri kasa kökündeki gizli `.metin-giti/` klasöründe `app.vault.adapter` üzerinden (masaüstü ve mobil uyumlu) saklar.
+  - Obsidian dilinize otomatik uyum sağlar veya **Ayarlar → Metin Giti** üzerinden (`Otomatik`, `Türkçe`, `English`) elle seçilebilir.
+  - Notlarınızın YAML üst verisine dokunmaz. Tüm sürüm verilerini masaüstü ve mobilde kasa kökündeki gizli `.metin-giti/` klasöründe düzenli şekilde saklar.
+
+## Ekran Görüntüleri
+
+| Zaman Çizelgesi | Yan Yana Karşılaştırma |
+| :---: | :---: |
+| ![Zaman Çizelgesi](https://raw.githubusercontent.com/senteze/metin-giti/main/assets/timeline.png) | ![Yan Yana Karşılaştırma](https://raw.githubusercontent.com/senteze/metin-giti/main/assets/diff.png) |
 
 ## Kurulum
 
-### Manuel Kurulum
+### Obsidian Topluluk Eklentileri (Önerilen)
 
-1. `main.js`, `manifest.json` ve `styles.css` dosyalarını kasanızdaki `<Kasanız>/.obsidian/plugins/metin-giti/` klasörüne kopyalayın.
-2. Obsidian'da **Ayarlar → Topluluk eklentileri** bölümünden **Metin Giti** eklentisini etkinleştirin.
+1. Obsidian'da **Ayarlar → Topluluk eklentileri** bölümünü açın.
+2. **Göz at** butonuna tıklayıp **Metin Giti** eklentisini arayın.
+3. **Yükle** ve ardından **Etkinleştir** butonuna tıklayın.
 
-### Geliştirici Kurulumu
+<details>
+<summary><b>Manuel Kurulum ve Geliştirici Kurulumu</b></summary>
+
+#### Manuel Kurulum
+
+1. Son sürümden `main.js`, `manifest.json` ve `styles.css` dosyalarını indirin.
+2. Bu dosyaları `<Kasanız>/.obsidian/plugins/metin-giti/` klasörüne kopyalayın.
+3. Obsidian'da **Ayarlar → Topluluk eklentileri** bölümünden **Metin Giti** eklentisini etkinleştirin.
+
+#### Geliştirici Kurulumu
 
 ```bash
 npm install
 npm run build
 ```
 
-## Ekran Görüntüleri
+</details>
 
-<!-- Ekran görüntüleri buraya eklenecektir:
-![Zaman Çizelgesi](docs/timeline.png)
-![Yan Yana Karşılaştırma](docs/diff-split.png)
--->
+## Geri Bildirim, Hata Bildirimi ve Özellik Önerileri
+
+Bize **Türkçe veya İngilizce** olarak ulaşabilirsiniz:
+
+- **Hata Bildirimi:** [Hata Bildirimi Oluştur](https://github.com/senteze/metin-giti/issues/new?template=bug_report.md)
+- **Özellik Önerisi:** [Özellik Önerisi Oluştur](https://github.com/senteze/metin-giti/issues/new?template=feature_request.md)
+- **Sorular ve Fikirler:** [GitHub Discussions'a Katıl](https://github.com/senteze/metin-giti/discussions)
 
 ## Lisans
 
