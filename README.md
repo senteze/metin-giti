@@ -1,4 +1,4 @@
-English | [Türkçe (Tam Dokümantasyon)](https://github.com/senteze/metin-giti/blob/main/README.tr.md)
+English | [Türkçe (Tam Dokümantasyon)](https://github.com/senteze/metin-giti/blob/master/README.tr.md)
 
 <details>
 <summary><b>🇹🇷 Türkçe Özet & Hızlı Başlangıç (Okumak için tıklayın)</b></summary>
@@ -63,7 +63,7 @@ English | [Türkçe (Tam Dokümantasyon)](https://github.com/senteze/metin-giti/
 
 | Version Timeline | Side-by-Side Comparison |
 | :---: | :---: |
-| ![Version Timeline](https://raw.githubusercontent.com/senteze/metin-giti/main/assets/timeline.png) | ![Side-by-Side Diff](https://raw.githubusercontent.com/senteze/metin-giti/main/assets/diff.png) |
+| ![Version Timeline](https://raw.githubusercontent.com/senteze/metin-giti/master/assets/timeline.png) | ![Side-by-Side Diff](https://raw.githubusercontent.com/senteze/metin-giti/master/assets/diff.png) |
 
 ## Installation
 

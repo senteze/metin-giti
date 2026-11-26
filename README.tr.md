@@ -1,4 +1,4 @@
-[English](https://github.com/senteze/metin-giti/blob/main/README.md) | **Türkçe**
+[English](https://github.com/senteze/metin-giti/blob/master/README.md) | **Türkçe**
 
 # Metin Giti
 
@@ -38,7 +38,7 @@
 
 | Zaman Çizelgesi | Yan Yana Karşılaştırma |
 | :---: | :---: |
-| ![Zaman Çizelgesi](https://raw.githubusercontent.com/senteze/metin-giti/main/assets/timeline.png) | ![Yan Yana Karşılaştırma](https://raw.githubusercontent.com/senteze/metin-giti/main/assets/diff.png) |
+| ![Zaman Çizelgesi](https://raw.githubusercontent.com/senteze/metin-giti/master/assets/timeline.png) | ![Yan Yana Karşılaştırma](https://raw.githubusercontent.com/senteze/metin-giti/master/assets/diff.png) |
 
 ## Kurulum
 
