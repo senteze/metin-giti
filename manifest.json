@@ -1,7 +1,7 @@
 {
 	"id": "metin-giti",
 	"name": "Metin Giti",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"minAppVersion": "1.7.2",
 	"description": "Notlarınız için sade, doğrusal sürüm geçmişi ve otomatik yedekleme eklentisi.",
 	"author": "senteze",
